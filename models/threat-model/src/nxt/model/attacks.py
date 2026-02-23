@@ -153,11 +153,15 @@ ballot_tampering_corruption_ea = Attack(
     variant_of=pat.corruption,
     achieves=[ballot_tampering],
     occurs_in=[ctx.EA],
-    targets=[prop.C2_1],
+    targets=[prop.C2_1, prop.P1_5],
     mitigations=[
         MitigationApplication(
             mitigation=mit.recorded_as_cast,
             rationale="For a single altered or removed cryptogram, the ballot tracker checking process detects this attack, though only if the voter carries it out. For large scale attacks that compromise multiple cryptograms, the ballot tracker checking process detects this attack with high probability if enough voters carry it out.",
+        ),
+        MitigationApplication(
+            mitigation=mit.mix_input_verification,
+            rationale="An attempt to alter the mix input in a way that would violate voter privacy will be detected when the trustees check the altered input against the state of the public bulletin board."
         ),
     ],
 )
@@ -717,7 +721,7 @@ cheating_auditing_application = Attack(
     mitigations=[
         MitigationApplication(
             mitigation=OUT_OF_SCOPE,
-            rationale="If the device used to perform ballot tracking code checks is compromised, recorded-as-cast and counted-as-recorded verifiability are broken for the user of that device. However, election audits ({V3}) can be carried out by anyone and are general verifications that do not depend on specific ballot tracking codes. Note that the compromise of arbitrary devices used to perform election verification by arbitrary users is also out of scope.",
+            rationale="If the device used to perform ballot tracker checks is compromised, recorded-as-cast and counted-as-recorded verifiability are broken for the user of that device. However, election audits ({V3}) can be carried out by anyone and are general verifications that do not depend on specific ballot trackers. Note that the compromise of arbitrary devices used to perform election verification by arbitrary users is also out of scope.",
         ),
     ],
 )

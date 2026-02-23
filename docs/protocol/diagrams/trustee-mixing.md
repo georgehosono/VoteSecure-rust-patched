@@ -41,7 +41,7 @@ sequenceDiagram
         deactivate TAS # TAS waits for mix result to be posted
 
         %% == Phase 0: Validate/Strip Cryptograms ==
-        Note over TB, Tn: Validate Encryption Proofs and Strip Cryptograms
+        Note over TB, Tn: Cryptogram validation and stripping
         Note over TB: All messages are mirrored<br/>to trustees' local boards
         TB->>T1: Naor-Yung Cryptograms List
         activate T1
@@ -51,17 +51,17 @@ sequenceDiagram
         TB->>Tn: Naor-Yung Cryptograms List
         activate Tn
 
-        T1->>T1: Validate Encryption Proofs<br/>Strip Cryptograms
+        T1->>T1: Validate Cryptograms List<br/>and Encryption Proofs<br/>Strip Cryptograms
         T1->>TB: ElGamal Cryptograms List (R0/T1)
         deactivate T1
 
-        T2->>T2: Validate Encryption Proofs<br/>Strip Cryptograms
+        T2->>T2: Validate Cryptograms List<br/>and Encryption Proofs<br/>Strip Cryptograms
         T2->>TB: ElGamal Cryptograms List (R0/T2)
         deactivate T2
 
         Note over T2, Tn: Steps repeated for T3 .. Tn-1
 
-        Tn->>Tn: Validate Encryption Proofs<br/>Strip Cryptograms
+        Tn->>Tn: Validate Cryptograms List<br/>and Encryption Proofs<br/>Strip Cryptograms
         Tn->>TB: ElGamal Cryptograms List (R0/Tn)
         deactivate Tn
 

@@ -2,13 +2,15 @@
 
 This subprotocol defines the interactions between the trustees and the trustee administration server (TAS) to accomplish the verified mixing of ballot ciphertexts through the use of a distributed re-encryption mixnet.
 
+## Trustee Verification of Public Bulletin Board
+
+Before carrying out this subprotocol, the trustees must verify that the state of the public bulletin board (PBB) for the election is valid and snapshot that state in order to bring it into the air gap. The trustees will use the PBB snapshot to ensure that the set of cryptograms to be mixed is valid before the mixing protocol begins.
+
 ## Trustee Protocol Communication
 
 As with the election key generation protocol, the TAS performs minimal computation in this protocol. It performs two main functions: providing a "trustee board" on which the trustees can post protocol messages, and posting an initial message to the trustee board containing the set of encrypted ballots that needs to be mixed.
 
- It exists to perform two main functions: providing a "trustee board" on which the trustees can post protocol messages, and posting the message to the trustee board containing the initial set of encrypted ballots that needs to be mixed.
-
-More information on the trustee board mechanism is avaiable in the [election key protocol specification](./election-key-gen-spec.md).
+More information on the trustee board mechanism is available in the [election key protocol specification](./election-key-gen-spec.md).
 
 This protocol requires the trustees to perform their individual shuffles in an order that is known to all the trustees (so that each trustee knows when it is their turn to shuffle). The mechanism for this ordering is implementation-dependent; possible implementations include lexicographic ordering of the trustee public keys, lexicographic ordering of trustee names, an assignment of numbers to the trustees performed as part of the initial election setup, etc. Here, we will simply assume that such an ordering exists.
 
@@ -63,12 +65,14 @@ channel properties
 #### Mix Initialization Message Checks
 
 1. The `election_hash` is the hash of the election configuration item for the current election.
-2. The `cryptograms` list contains a list of ballot cryptograms valid for this election, and all of their encryption proofs are valid.
-3. The `active_trustees` list contains a list containing at least the threshold number of trustees, all of which are different and all of which are known from the election setup data.
-4. The `originator` and `signer` are identical and represent the valid TAS identity.
-5. The `signature` is a valid signature matching the `signer.verifying_key` over the serialized contents of the `data` field.
+2. The `cryptograms` list contains a list of ballot cryptograms with valid encryption proofs, none of which are duplicates, and all of which exist on the PBB snapshot the trustees brought into the air gap with them.
+3. The `cryptograms` list contains more than one cryptogram.
+4. A valid explanation exists for any cast cryptogram contained in the PBB snapshot that does not appear in the `cryptograms` list.
+5. The `active_trustees` list contains a list containing at least the threshold number of trustees, all of which are different and all of which are known from the election setup data.
+6. The `originator` and `signer` are identical and represent the valid TAS identity.
+7. The `signature` is a valid signature matching the `signer.verifying_key` over the serialized contents of the `data` field.
 
-## Phase 2: Trustees Validate Encryption Proofs and Post Stripped Cryptograms
+## Phase 2: Trustees Validate Input Cryptograms and Encryption Proofs, and Post Stripped Cryptograms
 
 In this phase, all participating trustees examine the initial set of Naor-Yung cryptograms posted by the TAS, performing all the message checks described above. Each one then strips the cryptograms to ElGamal cryptograms for shuffling and posts them to the trustee board. In a correct execution of the protocol, there are `K` (the number of participating trustees) messages posted in this phase, and their contents are identical aside from the `signer` and `signature` fields. Note that the `signer` is included in the content being signed.
 

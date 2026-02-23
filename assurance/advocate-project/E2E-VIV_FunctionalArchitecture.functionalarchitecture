@@ -29,7 +29,8 @@ functional architecture 1.2 E2E-VIV_FunctionalArchitecture
         deviation p1_1 "The only information on voter selections leaked by the voter application is the computed cryptogram."
         deviation p1_2 "It must not be possible for anyone to decrypt cryptograms in the absence of a threshold of trustees."
         deviation p1_3 "It must not be possible for anyone to determine the complete mixing permutations or randomization factors."
-        deviation p1_4 "The decryption process must only operate on cryptograms output from the mixing process."
+        deviation p1_4 "The decryption process must only operate on the exact cryptograms output from the mixing process."
+        deviation p1_5 "The mixing and decryption process must not operate on a set of cryptograms that would enable linking a voter to their vote."
     deviation p2 "It must not be possible for future computationally unbounded adversaries to link a voter to their vote using published data from past elections."
     deviation p3 "It must not be possible for a voter to prove how they voted."
         deviation p3_1 "A voter does not gain a receipt that can be used to prove to anyone else that they voted in a certain way."
@@ -50,7 +51,7 @@ function availability "Availability" system {
 }
 
 function confidentiality "Confidentiality" system {
-    deviations [p1, p1_1, p1_2, p1_3, p1_4, p2, p3, p3_1, p3_2]
+    deviations [p1, p1_1, p1_2, p1_3, p1_4, p1_5, p2, p3, p3_1, p3_2]
 }
 
 function correctness "Correctness" system {

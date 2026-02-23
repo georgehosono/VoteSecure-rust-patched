@@ -17,8 +17,7 @@ sequenceDiagram
     BCA->>BCA: Generate Key Pair (BCA_PubKey, BCA_PrivKey)
     BCA->>Voter: Display pseudonym from BallotSubBulletin and<br/>generated Public Key (BCA_PubKey)
     BCA->>+DBB: Send Check Request (ID I, BCA_PubKey, Signature)
-    Note over BCA: Request sent, displays PubKey, waits for data.
-
+    Note over BCA: Request sent, displays pseudonym and public key,<br/>waits for data.
     activate DBB
     DBB->>DBB: Verify Request Signature using BCA_PubKey
     DBB->>+VA: Forward Check Request (ID I, BCA_PubKey)

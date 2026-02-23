@@ -361,15 +361,22 @@ isSupportedBy ISB_IMPLEMENT_M30_MITIGATIONS_PARTIALLY_CORE_OUTSIDE {
 }
 
 goal toBeDeveloped G_IMPLEMENT_M31 {
-    description "Implement mitigation M31 (Voter pseudonyms) within the core cryptographic library."
+    description "Implement mitigation M31 (Verification of mix input) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M31_MITIGATIONS_CORE {
     to G_IMPLEMENT_M31 from S_MITIGATIONS_CORE
 }
 
 goal toBeDeveloped G_IMPLEMENT_M32 {
-    description "Implement mitigation M32 (Voter specific Naor-Yung proofs) within the core cryptographic library."
+    description "Implement mitigation M32 (Voter pseudonyms) within the core cryptographic library."
 }
 isSupportedBy ISB_IMPLEMENT_M32_MITIGATIONS_CORE {
     to G_IMPLEMENT_M32 from S_MITIGATIONS_CORE
+}
+
+goal toBeDeveloped G_IMPLEMENT_M33 {
+    description "Implement mitigation M33 (Voter specific Naor-Yung proofs) within the core cryptographic library."
+}
+isSupportedBy ISB_IMPLEMENT_M33_MITIGATIONS_CORE {
+    to G_IMPLEMENT_M33 from S_MITIGATIONS_CORE
 }

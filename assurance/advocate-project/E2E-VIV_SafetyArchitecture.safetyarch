@@ -1827,7 +1827,7 @@ hazardous activity ATK5 {
         link L_C_M26-4_TO_ATK5_4_C2_1 from "C_M26-4" to ATK5_4_C2_1
 
         hazard "ATK5_5_C2_1" of ATK5_5_C2_1 {
-            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_OUTSIDE"
+            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M31"
         }
         control instance "C_M24-1" {
             control C_M24
@@ -1859,6 +1859,59 @@ hazardous activity ATK5 {
         link L_ATK5_ADV_TO_C_M30-1 from ADV_ACTION_ATK5 to "C_M30-1"
         link L_C_M30-1_TO_ATK5_5_C2_1 from "C_M30-1" to ATK5_5_C2_1
 
+        control instance "C_M31-1" {
+            control C_M31
+            barrier "M31-1"
+        }
+        barrier instance "M31-1" of M31 {
+            requirement "E2E-VIV_Requirements.M31_Implementation"
+        }
+        link L_ATK5_ADV_TO_C_M31-1 from ADV_ACTION_ATK5 to "C_M31-1"
+        link L_C_M31-1_TO_ATK5_5_C2_1 from "C_M31-1" to ATK5_5_C2_1
+
+        hazard "ATK5_5_P1_5" of ATK5_5_P1_5 {
+            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M24_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M30_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M31"
+        }
+        control instance "C_M24-2" {
+            control C_M24
+            barrier "M24-2"
+        }
+        barrier instance "M24-2" of M24 {
+            requirement "E2E-VIV_Requirements.M24_Implementation"
+        }
+        link L_ATK5_ADV_TO_C_M24-2 from ADV_ACTION_ATK5 to "C_M24-2"
+        link L_C_M24-2_TO_ATK5_5_P1_5 from "C_M24-2" to ATK5_5_P1_5
+
+        control instance "C_M26-6" {
+            control C_M26
+            barrier "M26-6"
+        }
+        barrier instance "M26-6" of M26 {
+            requirement "E2E-VIV_Requirements.M26_Implementation"
+        }
+        link L_ATK5_ADV_TO_C_M26-6 from ADV_ACTION_ATK5 to "C_M26-6"
+        link L_C_M26-6_TO_ATK5_5_P1_5 from "C_M26-6" to ATK5_5_P1_5
+
+        control instance "C_M30-2" {
+            control C_M30
+            barrier "M30-2"
+        }
+        barrier instance "M30-2" of M30 {
+            requirement "E2E-VIV_Requirements.M30_Implementation"
+        }
+        link L_ATK5_ADV_TO_C_M30-2 from ADV_ACTION_ATK5 to "C_M30-2"
+        link L_C_M30-2_TO_ATK5_5_P1_5 from "C_M30-2" to ATK5_5_P1_5
+
+        control instance "C_M31-2" {
+            control C_M31
+            barrier "M31-2"
+        }
+        barrier instance "M31-2" of M31 {
+            requirement "E2E-VIV_Requirements.M31_Implementation"
+        }
+        link L_ATK5_ADV_TO_C_M31-2 from ADV_ACTION_ATK5 to "C_M31-2"
+        link L_C_M31-2_TO_ATK5_5_P1_5 from "C_M31-2" to ATK5_5_P1_5
+
         hazard "ATK5_6_C2_1" of ATK5_6_C2_1 {
             associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M21", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M26_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M28"
         }
@@ -1872,15 +1925,15 @@ hazardous activity ATK5 {
         link L_ATK5_ADV_TO_C_M21-1 from ADV_ACTION_ATK5 to "C_M21-1"
         link L_C_M21-1_TO_ATK5_6_C2_1 from "C_M21-1" to ATK5_6_C2_1
 
-        control instance "C_M26-6" {
+        control instance "C_M26-7" {
             control C_M26
-            barrier "M26-6"
+            barrier "M26-7"
         }
-        barrier instance "M26-6" of M26 {
+        barrier instance "M26-7" of M26 {
             requirement "E2E-VIV_Requirements.M26_Implementation"
         }
-        link L_ATK5_ADV_TO_C_M26-6 from ADV_ACTION_ATK5 to "C_M26-6"
-        link L_C_M26-6_TO_ATK5_6_C2_1 from "C_M26-6" to ATK5_6_C2_1
+        link L_ATK5_ADV_TO_C_M26-7 from ADV_ACTION_ATK5 to "C_M26-7"
+        link L_C_M26-7_TO_ATK5_6_C2_1 from "C_M26-7" to ATK5_6_C2_1
 
         control instance "C_M28-1" {
             control C_M28
@@ -1905,15 +1958,15 @@ hazardous activity ATK5 {
         link L_ATK5_ADV_TO_C_M21-2 from ADV_ACTION_ATK5 to "C_M21-2"
         link L_C_M21-2_TO_ATK5_7_C2_1 from "C_M21-2" to ATK5_7_C2_1
 
-        control instance "C_M26-7" {
+        control instance "C_M26-8" {
             control C_M26
-            barrier "M26-7"
+            barrier "M26-8"
         }
-        barrier instance "M26-7" of M26 {
+        barrier instance "M26-8" of M26 {
             requirement "E2E-VIV_Requirements.M26_Implementation"
         }
-        link L_ATK5_ADV_TO_C_M26-7 from ADV_ACTION_ATK5 to "C_M26-7"
-        link L_C_M26-7_TO_ATK5_7_C2_1 from "C_M26-7" to ATK5_7_C2_1
+        link L_ATK5_ADV_TO_C_M26-8 from ADV_ACTION_ATK5 to "C_M26-8"
+        link L_C_M26-8_TO_ATK5_7_C2_1 from "C_M26-8" to ATK5_7_C2_1
 
         control instance "C_M28-2" {
             control C_M28
@@ -1937,7 +1990,7 @@ hazardous activity ATK6 {
         environmental condition EC
 
         hazard "ATK6_1_P1" of ATK6_1_P1 {
-            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M32"
+            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_WITHIN", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M5_OUTSIDE", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M33"
         }
         control instance "C_M5-1" {
             control C_M5
@@ -1949,15 +2002,15 @@ hazardous activity ATK6 {
         link L_ATK6_ADV_TO_C_M5-1 from ADV_ACTION_ATK6 to "C_M5-1"
         link L_C_M5-1_TO_ATK6_1_P1 from "C_M5-1" to ATK6_1_P1
 
-        control instance "C_M32-1" {
-            control C_M32
-            barrier "M32-1"
+        control instance "C_M33-1" {
+            control C_M33
+            barrier "M33-1"
         }
-        barrier instance "M32-1" of M32 {
-            requirement "E2E-VIV_Requirements.M32_Implementation"
+        barrier instance "M33-1" of M33 {
+            requirement "E2E-VIV_Requirements.M33_Implementation"
         }
-        link L_ATK6_ADV_TO_C_M32-1 from ADV_ACTION_ATK6 to "C_M32-1"
-        link L_C_M32-1_TO_ATK6_1_P1 from "C_M32-1" to ATK6_1_P1
+        link L_ATK6_ADV_TO_C_M33-1 from ADV_ACTION_ATK6 to "C_M33-1"
+        link L_C_M33-1_TO_ATK6_1_P1 from "C_M33-1" to ATK6_1_P1
 
         hazard "ATK6_2_P1" of ATK6_2_P1 {
             associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M23", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M25"
@@ -2416,7 +2469,7 @@ hazardous activity ATK11 {
         environmental condition EC
 
         hazard "ATK11_1_V2" of ATK11_1_V2 {
-            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M22", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M31", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M32"
+            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M22", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M32", "E2E-VIV_SecurityArgument.G_IMPLEMENT_M33"
         }
         control instance "C_M22-1" {
             control C_M22
@@ -2428,16 +2481,6 @@ hazardous activity ATK11 {
         link L_ATK11_ADV_TO_C_M22-1 from ADV_ACTION_ATK11 to "C_M22-1"
         link L_C_M22-1_TO_ATK11_1_V2 from "C_M22-1" to ATK11_1_V2
 
-        control instance "C_M31-1" {
-            control C_M31
-            barrier "M31-1"
-        }
-        barrier instance "M31-1" of M31 {
-            requirement "E2E-VIV_Requirements.M31_Implementation"
-        }
-        link L_ATK11_ADV_TO_C_M31-1 from ADV_ACTION_ATK11 to "C_M31-1"
-        link L_C_M31-1_TO_ATK11_1_V2 from "C_M31-1" to ATK11_1_V2
-
         control instance "C_M32-1" {
             control C_M32
             barrier "M32-1"
@@ -2447,6 +2490,16 @@ hazardous activity ATK11 {
         }
         link L_ATK11_ADV_TO_C_M32-1 from ADV_ACTION_ATK11 to "C_M32-1"
         link L_C_M32-1_TO_ATK11_1_V2 from "C_M32-1" to ATK11_1_V2
+
+        control instance "C_M33-1" {
+            control C_M33
+            barrier "M33-1"
+        }
+        barrier instance "M33-1" of M33 {
+            requirement "E2E-VIV_Requirements.M33_Implementation"
+        }
+        link L_ATK11_ADV_TO_C_M33-1 from ADV_ACTION_ATK11 to "C_M33-1"
+        link L_C_M33-1_TO_ATK11_1_V2 from "C_M33-1" to ATK11_1_V2
 
         hazard "ATK11_2_V2" of ATK11_2_V2
         control instance "C_OOS-1" {
@@ -3107,17 +3160,17 @@ hazardous activity ATK18 {
         environmental condition EC
 
         hazard "ATK18_1_P2" of ATK18_1_P2 {
-            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M31"
+            associated argument nodes "E2E-VIV_SecurityArgument.G_IMPLEMENT_M32"
         }
-        control instance "C_M31-1" {
-            control C_M31
-            barrier "M31-1"
+        control instance "C_M32-1" {
+            control C_M32
+            barrier "M32-1"
         }
-        barrier instance "M31-1" of M31 {
-            requirement "E2E-VIV_Requirements.M31_Implementation"
+        barrier instance "M32-1" of M32 {
+            requirement "E2E-VIV_Requirements.M32_Implementation"
         }
-        link L_ATK18_ADV_TO_C_M31-1 from ADV_ACTION_ATK18 to "C_M31-1"
-        link L_C_M31-1_TO_ATK18_1_P2 from "C_M31-1" to ATK18_1_P2
+        link L_ATK18_ADV_TO_C_M32-1 from ADV_ACTION_ATK18 to "C_M32-1"
+        link L_C_M32-1_TO_ATK18_1_P2 from "C_M32-1" to ATK18_1_P2
 
         event instance ADV_ACTION_ATK18 of ADV_ACTION
     }
@@ -5845,6 +5898,14 @@ event ATK5_5_C2_1 {
     deviation "E2E-VIV_FunctionalArchitecture.c2_1"
 }
 
+event ATK5_5_P1_5 {
+    description "The election administrator alters or removes cryptograms in the ballot box or during input to the mixing process."
+    type [security, functional]
+    sources [ ADV ]
+    allocation "E2E-VIV_FunctionalArchitecture.confidentiality"
+    deviation "E2E-VIV_FunctionalArchitecture.p1_5"
+}
+
 event ATK5_6_C2_1 {
     description "The network adds, alters or removes cryptograms."
     type [security, functional]
@@ -6796,13 +6857,18 @@ control C_M30 {
 }
 
 control C_M31 {
-    description "Voter pseudonyms implemented."
+    description "Verification of mix input implemented."
     barrier M31
 }
 
 control C_M32 {
-    description "Voter specific Naor-Yung proofs implemented."
+    description "Voter pseudonyms implemented."
     barrier M32
+}
+
+control C_M33 {
+    description "Voter specific Naor-Yung proofs implemented."
+    barrier M33
 }
 
 control C_OOS {
@@ -6961,11 +7027,16 @@ mitigation M30 {
 }
 
 mitigation M31 {
-    description "Voter pseudonyms"
+    description "Verification of mix input"
     function allocations [ "E2E-VIV_FunctionalArchitecture.core" ]
 }
 
 mitigation M32 {
+    description "Voter pseudonyms"
+    function allocations [ "E2E-VIV_FunctionalArchitecture.core" ]
+}
+
+mitigation M33 {
     description "Voter specific Naor-Yung proofs"
     function allocations [ "E2E-VIV_FunctionalArchitecture.core" ]
 }

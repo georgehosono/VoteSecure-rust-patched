@@ -232,6 +232,7 @@ voter_specific_naor_yung_proofs = Mitigation(
     description="Ballot cryptogram Naor-Yung proofs are made voter-specific, for example by including the voter's pseudonym or signature public key (or other voter derived value) in the proof challenge generation.",
     scope=Scope.CORE,
 )
+
 no_checks_on_cast_ballots = Mitigation(
     id="M32",
     name="No checks on cast ballots",
@@ -239,6 +240,12 @@ no_checks_on_cast_ballots = Mitigation(
     scope=Scope.CORE,
 )
 
+mix_input_verification = Mitigation(
+    id="M33",
+    name="Verification of mix input",
+    description="The trustees will verify that the PBB state is valid, and that the mix input is valid with respect to the PBB state, before starting the mixing and decryption process.",
+    scope=Scope.CORE,
+)
 
 # =============================================================================
 # AUTO-COLLECT ALL MITIGATIONS

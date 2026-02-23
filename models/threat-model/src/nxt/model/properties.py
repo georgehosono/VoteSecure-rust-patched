@@ -37,7 +37,13 @@ P1_3 = Property(
 P1_4 = Property(
     id="P1.4",
     refines=P1,
-    description="The decryption process must only operate on cryptograms output from the mixing process.",
+    description="The decryption process must only operate on the exact cryptograms output from the mixing process."
+)
+
+P1_5 = Property(
+    id="P1.5",
+    refines=P1,
+    description="The mixing and decryption process must not operate on a set of cryptograms that would enable linking a voter to their vote."
 )
 
 P2 = Property(
