@@ -2,13 +2,6 @@
  * k-Pedersen Commitment Scheme (seeded variants)
  * Section 10.3 of the EVS Draft, February 3, 2025.
  *
- * @note The Cryptol-to-Rust code generator does not
- * support Cryptol's `random _` function yet. While
- * the smoke tests do not call it, it turns out that
- * compilation errors may nonetheless arise. Hence,
- * factor out the seeded variants of functions from
- * PedersenSeeded.cry into a module here.
- *
  * @author Frank Zeyda (frank.zeyda@freeandfair.us)
  * @copyright Free & Fair 2025
  * @version 0.1
@@ -180,10 +173,6 @@ kOpen'Seeded comm seed ms = PC::kOpen comm r ms
 /*********************/
 /* Testing Functions */
 /*********************/
-
-/* Note that at the time of writing this component, the Cryptol
- * to Rust compiler does not support the `random _` function of
- * Cryptol. Hence we are not using the seeded versions below. */
 
 /**************************/
 /* Algorithm Verification */
