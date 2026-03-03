@@ -65,7 +65,7 @@ encBits bv =
   else error "failed to find a suitable curve point"
   where bv'ext = bv # (zero : [twiddle])
         p = findPoint (bv2Z bv'ext)
-        bv'dec = decPoint p
+        bv'dec = decPoint`{fixed, twiddle} p
 
 /**
  * Decodes a curve point (not infinity) into a bit string.
