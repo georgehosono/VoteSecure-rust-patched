@@ -8,3 +8,4 @@ venv*
 *.js
 .cryproject/
 __pycache__/
+target
