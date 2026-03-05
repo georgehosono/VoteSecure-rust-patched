@@ -292,7 +292,24 @@ pub fn ballot_check_context(
         .map(|byte| format!("{:02x}", byte))
         .collect();
 
-    format!("ballot_check;{};{:?}", election_hash_hex, bca_verifying_key)
+    // NOTE: The original verision simply used the Debug implementation
+    // of bca_verifying_key and used that in the contex.
+    // This causes portability issues where the same VerifyingKey can have
+    // different internal representations. The underlying FieldElements
+    // will have different representations on different platforms,
+    // and they are not guaranteed to be in their canonical representation.
+    // This conversion uses the CompressedEdwardsY, which should be the same
+    // on all platforms.
+    let bca_verifying_key_hex: String = bca_verifying_key
+        .as_bytes()
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect();
+
+    format!(
+        "ballot_check;{};{}",
+        election_hash_hex, bca_verifying_key_hex
+    )
 }
 
 /// Encrypt a complete ballot and return both the cryptogram and randomizers
