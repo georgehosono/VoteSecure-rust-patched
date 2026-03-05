@@ -1,7 +1,0 @@
-// partof: Technical Requirements
-// General requirements for accessibility of digital election systems.
-requirements Accessibility Requirements
-
-// Reference: Rec(2004)11 Appendix III, A. 65.
-Accessible Voting Options
-The protocol shall support a voting system that optimizes presentation of the voting options for the voter.

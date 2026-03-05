@@ -1,24 +1,71 @@
-# VoteSecure
+# Project Workspace
 
-This is the primary repository for [Free & Fair](https://freeandfair.us/)’s work on the [Tusk Philanthropies](https://tuskphilanthropies.org/)/Free Democracy Foundation [Mobile Voting Project](https://mobilevoting.org/), which is being carried out using the [Rigorous Digital Engineering](https://rde.freeandfair.us/) methodology. The goal of this work is to develop the cryptographic core of an end-to-end verifiable Internet voting (E2E-VIV) system.
+This repository contains the Rust workspace for the VoteSecure project.
 
-## Information
+## Packages
 
-- The project's [license](./LICENSE.md), [code of conduct](./CODE_OF_CONDUCT.md), [responsible disclosure guidelines](./SECURITY.md), and [contribution guidelines](./CONTRIBUTING.md) are available in separate documents.
-- The [frequently asked questions (FAQ) document](https://github.com/FreeAndFair/VoteSecure/releases/download/latest/faq.pdf), available in our [GitHub releases](https://github.com/FreeAndFair/VoteSecure/releases), contains answers to many questions we have been asked about the project.
-- The [team documentation](./docs/team.md) contains information for the project team (some of which is also applicable to other contributors) about how development is carried out in this and related project repositories, team communication standards, etc.
-- The [continuous integration/deployment/verification documentation](./docs/ci_cd_cv.md) contains information about what artifacts are checked/created/verified in the repository (and related repositories) via continuous integration, deployment, and verification.
-- In order to understand the modeling we are focused on at a high level, a white paper called "[Refinements between High-Level Models](https://github.com/FreeAndFair/VoteSecure/releases/download/latest/refinements_paper.pdf)" is available in our [GitHub releases](https://github.com/FreeAndFair/VoteSecure/releases).  Its target audience is computer scientists/mathematicians who have a basic understanding of rigorous modeling.
-- Our [concept of operations (CONOPS)](./docs/conops/conops.md) provides a high-level description of an E2E-VIV system that uses the cryptographic core library being developed here; note that Free & Fair is _not_ developing such a system, but only the cryptographic core library.
-- The [static version of our threat model](https://github.com/FreeAndFair/VoteSecure/releases/download/latest/threat-model.pdf) is available in our [GitHub releases](https://github.com/FreeAndFair/VoteSecure/releases).
+The workspace contains the following packages:
 
-## Repository Layout
+- [cryptography](./cryptography)
 
-The repository is broken into several parts, and each part has its own README (or other) files that explain its contents:
+  Cryptographic building blocks necessary to implement the VoteSecure protocol.
 
-- [docs](./docs) contains documents related to the project, including protocol documentation.
-- [models](./models) contains all the RDE models, including the domain model, feature model, threat model, formal protocol model, and SysML system model.
-- [implementations/rust](./implementations/rust) contains the VoteSecure protocol library implementation.
-- [assurance](./assurance) contains the AdvoCATE assurance case and its associated files; this is currently an assurance case skeleton, and has not been filled in with assurance evidence from the implementation.
-- [docker](./docker) contains files required to build the various Docker images.
-- [examples/needham-schroeder](./examples/needham-schroeder) contains a partial example of a small cryptographic protocol implemented using the RDE process.
+- [protocol](./protocol)
+
+  The VoteSecure protocol implementation.
+
+## Building
+
+This workspace currently requires the **nightly** Rust compiler. To install and use the nightly toolchain as default, run:
+
+```bash
+rustup default nightly
+```
+
+We have also included a [rust-toolchain.toml](rust-toolchain.toml) that should run the correct toolchain for you automatically.
+
+To build all packages in the workspace, navigate to the root of the repository and run:
+
+```Bash
+cargo build
+```
+
+To build a specific package, you can use its name. For example:
+
+```Bash
+cargo build -p cryptography
+```
+
+## Testing
+
+To run tests for all packages (the `--test-threads` parameter is important because many of the tests, particularly those that do [Stateright](https://www.stateright.rs/) model checking, implement concurrency of their own and overall test performance suffers greatly if `cargo` also runs tests concurrently):
+
+```Bash
+cargo test -- --test-threads=1
+```
+
+To run tests for a specific package:
+
+```Bash
+cargo test -p cryptography
+```
+
+## Linting
+
+To run clippy for all packages:
+
+```Bash
+cargo clippy
+```
+
+To run clippy for a specific package:
+
+```Bash
+cargo clippy -p cryptography
+```
+
+## Cleaning
+
+```Bash
+cargo clean
+```
