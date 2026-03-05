@@ -1,4 +1,5 @@
 __pycache__/
+.cache/
 lib/
 dist/
 latex_inputs

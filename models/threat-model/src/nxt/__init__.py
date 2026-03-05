@@ -2,7 +2,7 @@
 # Copyright (C) 2026 Free & Fair
 
 """
-Threat modeling for SecureVote.
+Threat modeling for VoteSecure.
 
 The authoring layer provides Pydantic models with IDE support
 (autocomplete, type checking, refactoring). These are converted to

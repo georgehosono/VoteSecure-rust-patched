@@ -8,11 +8,14 @@ from . import mitigations
 from . import patterns
 from . import attacks
 
+# Threat model version metadata (single source of truth for HTML and LaTeX)
+MODEL_VERSION = "1.2"
+MODEL_DATE = "March 2026"
 
 # Build the complete threat model
 model = ThreatModel(
-    name="SecureVote Threat Model",
-    description="Threat model for the SecureVote E2EV protocol.",
+    name="VoteSecure Threat Model",
+    description="Threat model for the VoteSecure E2E-VIV protocol.",
 
     properties=properties.ALL,
     contexts=contexts.ALL,

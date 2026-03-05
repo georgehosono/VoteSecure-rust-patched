@@ -5870,7 +5870,7 @@ event ATK6_1_P1 {
 }
 
 event ATK6_2_P1 {
-    description "An adversary uses encryption malleability to construct a ballot related to a target ballot to reveal it [BPW16]."
+    description "An adversary uses encryption malleability to construct a ballot related to a target ballot to reveal it ~[[BernhardEtAlHowNot2012a]]."
     type [security, functional]
     sources [ ADV ]
     allocation "E2E-VIV_FunctionalArchitecture.confidentiality"

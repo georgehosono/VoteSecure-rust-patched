@@ -1,4 +1,4 @@
-# SecureVote Threat Model - Concrete Attacks
+# VoteSecure Threat Model - Concrete Attacks
 # Specific attacks instantiated from patterns
 
 from nxt import Attack, MitigationApplication, OUT_OF_SCOPE
@@ -32,11 +32,11 @@ cheating_voting_device = Attack(
     mitigations=[
         MitigationApplication(
             mitigation=mit.cast_as_intended,
-            rationale="The ballot checking process will detect mismatched encrypted submissions. For a single compromised device, this checking process (assuming it is carried out by the voter using a different, uncompromised device) detects this attack, though only if the voter carries it out. In this case, the voter may resubmit their ballot using an uncompromised device, thwarting the attack for that voter. For large scale attacks that compromise multiple devices, the ballot checking process detects this attack with high probability if enough voters carry it out using uncompromised devices. If a procedure is in place whereby an election outcome is invalidated if a sufficient number of voters make reports of mismatched ciphertexts, the attack is additionally on {A3}. See also Malicious reporting.",
+            rationale="The ballot checking process will detect mismatched encrypted submissions. For a single compromised device, this checking process (assuming it is carried out by the voter using a different, uncompromised device) detects this attack, though only if the voter carries it out. In this case, the voter may resubmit their ballot using an uncompromised device, thwarting the attack for that voter. For large scale attacks that compromise multiple devices, the ballot checking process detects this attack with high probability if enough voters carry it out using uncompromised devices. If a procedure is in place whereby an election outcome is invalidated if a sufficient number of voters make reports of mismatched ciphertexts, the attack is additionally on {A3}. See also {Malicious reporting}.",
         ),
         MitigationApplication(
             mitigation=mit.recorded_as_cast,
-            rationale="Ballot tracker checks on the bulletin boad will detect covert submit-and-cast of mismatched ciphertexts. For a single compromised device, this checking pocess (assuming it is carried out by the voter using a different, uncompromised device) detects this attack, though only if the voter carries it out. For large scale attacks that compromise multiple devices, the ballot tracking check detects this attack with high probability if enough voters carry it out using uncompromised devices. If this mitigation is successful, the attack may be thwarted for the voter, or becomes an attack on availability, depending on whether the voter has a recourse to correct  their submission. If the voter has a correcting recourse, the attack is thwarted for that voter.  If the voter's recourse is restricted to reporting and canceling the ballot, the attack is on {A1}. Finally, if a procedure is in place whereby an election outcome is invalidated if a sufficient number of voters make reports of mismatched ciphertexts, the attack is additionally on {A3}. See also Malicious reporting.",
+            rationale="Ballot tracker checks on the bulletin board will detect covert submit-and-cast of mismatched ciphertexts. For a single compromised device, this checking process (assuming it is carried out by the voter using a different, uncompromised device) detects this attack, though only if the voter carries it out. For large scale attacks that compromise multiple devices, the ballot tracking check detects this attack with high probability if enough voters carry it out using uncompromised devices. If this mitigation is successful, the attack may be thwarted for the voter, or becomes an attack on availability, depending on whether the voter has a recourse to correct their submission. If the voter has a correcting recourse, the attack is thwarted for that voter. If the voter's recourse is restricted to reporting and canceling the ballot, the attack is on {A1}. Finally, if a procedure is in place whereby an election outcome is invalidated if a sufficient number of voters make reports of mismatched ciphertexts, the attack is additionally on {A3}. See also {Malicious reporting}.",
         ),
     ],
 )
@@ -754,7 +754,7 @@ cheating_bb_election_audit = Attack(
 cheating_ea_cryptogram_check = Attack(
     id="cheating_ea_cryptogram_check",
     name="Cheating EA---cryptogram check",
-    description="The election administrator manipulates the bulletin board such that it does not not provide correct information about cryptograms in the ballot box.",
+    description="The election administrator manipulates the bulletin board such that it does not provide correct information about cryptograms in the ballot box.",
     variant_of=pat.corruption,
     achieves=[malicious_bulletin_board],
     occurs_in=[ctx.EA],
@@ -764,7 +764,7 @@ cheating_ea_cryptogram_check = Attack(
 cheating_ea_election_audit = Attack(
     id="cheating_ea_election_audit",
     name="Cheating EA---election audit",
-    description="The election administrator manipulates the bulletin board such that it does not not provide correct election auditing information.",
+    description="The election administrator manipulates the bulletin board such that it does not provide correct election auditing information.",
     variant_of=pat.corruption,
     achieves=[malicious_bulletin_board],
     occurs_in=[ctx.EA],
@@ -833,7 +833,7 @@ clash_attack_v1 = Attack(
         ),
         MitigationApplication(
             mitigation=mit.no_checks_on_cast_ballots,
-            rationale="Attacks that use randomizers corresponding to cast ballots in the the ballot checking process are not possible.",
+            rationale="Attacks that use randomizers corresponding to cast ballots in the ballot checking process are not possible.",
         ),
     ],
 )
@@ -1357,7 +1357,7 @@ broken_ballot_independence = Attack(
 malleability_attack = Attack(
     id="malleability_attack",
     name="Malleability attack",
-    description="An adversary uses encryption malleability to construct a ballot related to a target ballot to reveal it [BPW16].",
+    description="An adversary uses encryption malleability to construct a ballot related to a target ballot to reveal it ~{[[BernhardEtAlHowNot2012a]]}.",
     achieves=[broken_ballot_independence],
     targets=[prop.P1],
     mitigations=[
@@ -1676,7 +1676,7 @@ spoofing_attack = Attack(
     mitigations=[
         MitigationApplication(
             mitigation=OUT_OF_SCOPE,
-            rationale="If a sufficiently capable counterfeit application exists, and a voter is deceived into voting with it, it can effectively carry out any other attack on this list that involves a compromised voter application, though all mitigations against those attacks also serve as mitigations against this one. There are also several ways to mitigate this attack by reducing both the likelihood of such a counterfeit application existing and and the likelihood of such an application successfully deceiving voters. These include the use of trusted mobile application stores, high-profile announcements to voters to only trust applications from specific sources, and other techniques commonly used to validate software distributions.",
+            rationale="If a sufficiently capable counterfeit application exists, and a voter is deceived into voting with it, it can effectively carry out any other attack on this list that involves a compromised voter application, though all mitigations against those attacks also serve as mitigations against this one. There are also several ways to mitigate this attack by reducing both the likelihood of such a counterfeit application existing and the likelihood of such an application successfully deceiving voters. These include the use of trusted mobile application stores, high-profile announcements to voters to only trust applications from specific sources, and other techniques commonly used to validate software distributions.",
         ),
     ],
 )
@@ -1779,7 +1779,7 @@ keygen_sabotage = Attack(
     mitigations=[
         MitigationApplication(
             mitigation=OUT_OF_SCOPE,
-            rationale="The selection of trustees is assumed to be done in a way such that the likelihood of them choosing not to participate is mimimal. In the event that not enough trustees are able to participate in key generation, new trustees must be chosen.",
+            rationale="The selection of trustees is assumed to be done in a way such that the likelihood of them choosing not to participate is minimal. In the event that not enough trustees are able to participate in key generation, new trustees must be chosen.",
         ),
     ],
 )
@@ -1806,5 +1806,8 @@ election_sabotage = Attack(
 # =============================================================================
 
 # Automatically collect all Attack instances defined in this module
-ALL = [obj for name, obj in globals().items()
-       if isinstance(obj, Attack) and not name.startswith('_')]
+ALL = [
+    obj
+    for name, obj in globals().items()
+    if isinstance(obj, Attack) and not name.startswith("_")
+]

@@ -17,7 +17,7 @@ threat-model/
 │   │   ├── patterns.py      # Abstract attack patterns
 │   │   ├── attacks.py       # Concrete attack definitions
 │   │   ├── view_cli.py      # CLI query tool
-│   │   ├── visualize.py     # HTML visualization generator
+│   │   ├── generate_html.py # Interactive HTML visualization generator
 │   │   └── generate_latex_inputs.py  # LaTeX table generator
 ├── threat_model.html    # Generated interactive graph visualization
 └── threat_model.pdf     # Generated PDF threat model
@@ -66,32 +66,15 @@ python -m nxt.model.view_cli -e outstanding
 ```
 
 Options:
+
 - `-e, --entity`: `attack`, `property`, `mitigation`, `context`, `outstanding`
 - `-r, --root`: Start from a specific entity (by ID)
 - `-t, --tree`: Display as tree instead of table
 - `-o, --oos`: Include "Out of Scope" items
 
-### Text Visualization (server.py)
+### Interactive HTML Visualization
 
-Run a server to serve a text-based visualization (`--help` will show additional command line options):
-
-```bash
-python -m nxt.model.server
-```
-
-### Graph Visualization (visualize.py)
-
-Generate an interactive HTML graph visualization:
-
-```bash
-python -m nxt.model.visualize -o threat_model.html
-```
-
-Open `threat_model.html` in a browser. Features:
-- Click nodes to focus on reachable subgraph
-- Shift+Click to hide unreachable nodes
-- Search panel for finding nodes
-- Shareable URLs via `?node=<id>` parameter
+`make html` generates an interactive HTML visualization (`threat-model.html`) with several views from the perspectives of contexts, security objectives, attack patterns, attacks, and mitigations, as well as an interactive graph-based representation of the threat model. Links to specific parts of the visualization are shareable via URLs that include HTTP parameters.
 
 ## Key Relationships
 

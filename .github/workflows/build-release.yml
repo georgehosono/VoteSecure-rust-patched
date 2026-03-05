@@ -41,7 +41,7 @@ jobs:
         run: |
           cd models/threat-model
           pip install -r requirements.txt
-          make graph pdf
+          make html pdf
 
       - name: Render Refinements Paper
         run: |

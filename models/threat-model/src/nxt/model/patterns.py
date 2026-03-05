@@ -1,5 +1,5 @@
-# SecureVote Threat Model - Attack Patterns
-# Abstract attacks that can be instantiated as concrete attacks
+# VoteSecure Threat Model - Attack Patterns
+# Abstract attack patterns that can be instantiated as concrete attacks
 
 from nxt import AttackPattern, MitigationApplication, OUT_OF_SCOPE
 from . import mitigations as mit
@@ -131,7 +131,7 @@ malicious_hardware = AttackPattern(
 compromised_user_device = AttackPattern(
     id="compromised_user_device",
     name="Compromised user device",
-    description="An adversary gains control of a user device that runs the {VA} or {BCA}. Unlike in attack {Compromised device}, this device is outside the control of the administrators of the voting system.",
+    description="An adversary gains control of a user device that runs the {VA} or {BCA}. Unlike in attack pattern {Compromised device}, this device is outside the control of the administrators of the voting system.",
 )
 
 
@@ -324,5 +324,8 @@ spoofing = AttackPattern(
 # =============================================================================
 
 # Automatically collect all AttackPattern instances defined in this module
-ALL = [obj for name, obj in globals().items()
-       if isinstance(obj, AttackPattern) and not name.startswith('_')]
+ALL = [
+    obj
+    for name, obj in globals().items()
+    if isinstance(obj, AttackPattern) and not name.startswith("_")
+]

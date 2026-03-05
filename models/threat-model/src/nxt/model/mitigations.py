@@ -1,4 +1,4 @@
-# SecureVote Threat Model - Mitigations
+# VoteSecure Threat Model - Mitigations
 # Countermeasures that prevent or reduce impact of attacks
 
 from nxt import Mitigation, Scope
@@ -240,11 +240,13 @@ no_checks_on_cast_ballots = Mitigation(
 )
 
 
-
 # =============================================================================
 # AUTO-COLLECT ALL MITIGATIONS
 # =============================================================================
 
 # Automatically collect all Mitigation instances defined in this module
-ALL = [obj for name, obj in globals().items()
-       if isinstance(obj, Mitigation) and not name.startswith('_')]
+ALL = [
+    obj
+    for name, obj in globals().items()
+    if isinstance(obj, Mitigation) and not name.startswith("_")
+]

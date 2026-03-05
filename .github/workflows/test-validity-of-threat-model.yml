@@ -46,7 +46,7 @@ jobs:
       - name: Render Threat Model
         run: |
           cd models/threat-model
-          make graph pdf
+          make html pdf
 
       - name: Save the Generated Threat Model PDF
         uses: actions/upload-artifact@v4
