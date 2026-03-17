@@ -1,5 +1,4 @@
 anytree==2.13.0
-Flask==3.1.2
 jsonschema==4.26.0
 natsort==8.4.0
 networkx==3.6.1

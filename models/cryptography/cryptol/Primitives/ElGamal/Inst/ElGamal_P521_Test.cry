@@ -4,7 +4,7 @@
  * using the default bitstring encoding of the EC group.
  *
  * @author Frank Zeyda (frank.zeyda@freeandfair.us)
- * @copyright Free & Fair 2025
+ * @copyright Free & Fair 2025-26
  * @version 0.1
  */
 module Primitives::ElGamal::Inst::ElGamal_P521_Test where

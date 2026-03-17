@@ -1,9 +1,9 @@
-# .github/workflows/check-tamarin-models.yml
+# .github/workflows/test-validity-of-tamarin-models.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-06-06
-# Modified: 2025-06-06
+# Modified: 2026-04-06
 
-name: Check Tamarin Model Syntax
+name: Test Validity of Tamarin Models
 
 on:
   pull_request:
@@ -13,6 +13,8 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'models/cryptography/tamarin/**'
   workflow_dispatch:
 
 jobs:
@@ -21,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_READ_ONLY_TOKEN_USERNAME }}
           password: ${{ secrets.DOCKER_READ_ONLY_TOKEN }}
@@ -33,4 +35,4 @@ jobs:
         run: |
           echo "Processing models/cryptography/tamarin"
           cd models/cryptography/tamarin
-          DOCKER=yes make ci
+          USE_DOCKER=yes make ci

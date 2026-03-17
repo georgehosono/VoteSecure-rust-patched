@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 set -e # exit immediately upon error(s)
 
 # ANSI escape sequences for fonts and colors

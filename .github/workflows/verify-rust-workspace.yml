@@ -1,0 +1,60 @@
+# .github/workflows/verify-rust-workspace.yml
+# Author: Daniel M. Zimmerman
+# Created: 2026-03-18
+# Modified: 2026-04-03
+
+name: Verify Rust Workspace
+
+on:
+  # Run CV automatically only after the corresponding CI workflow
+  # succeeds on `main`. To test this before merge, set the repo
+  # variable `FAST_CV_TEST_BRANCH` to your branch name.
+  # We also allow manual dispatch.
+  workflow_run:
+    workflows:
+      - Test Validity of Rust Workspace
+    types:
+      - completed
+
+  workflow_dispatch:
+
+env:
+  RUST_MANIFEST_PATH: implementations/rust/workspace/Cargo.toml
+
+jobs:
+  verify:
+    name: Run Rust Workspace CV Checks
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
+        github.event.workflow_run.head_branch == vars.FAST_CV_TEST_BRANCH))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
+
+      - name: Switch to Nightly Rust
+        run: |
+          rustup toolchain install nightly
+          rustup default nightly
+          rustup --version
+
+      - name: Set up Cargo Cache
+        uses: actions/cache@v5
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Run Rust Workspace Tests
+        run: |
+          cargo test --release --manifest-path $RUST_MANIFEST_PATH -- --test-threads=1

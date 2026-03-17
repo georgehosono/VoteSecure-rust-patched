@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 Free & Fair
+// Copyright 2025-26 Free & Fair
 // See LICENSE.md for details
 
 // TODO: consider boxing structs in large enum variants to improve performance

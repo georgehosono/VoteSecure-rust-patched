@@ -1,9 +1,9 @@
 # .github/workflows/run-makefile-for-isabelle-docker-image.yml
 # Author: Daniel M. Zimmerman
 # Created: 2026-03-04
-# Modified: 2026-03-09
+# Modified: 2026-04-06
 
-name: Run Makefile for Isabelle Docker Image
+name: Isabelle Docker Image
 
 on:
   pull_request:
@@ -13,24 +13,20 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'docker/isabelle-e2eviv/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    strategy:
-      # Because we want to build as efficiently as possible in
-      # GitHub Actions, we build each platform's image on its own
-      # native builder; as we are not deploying them automatically,
-      # this demonstrates that both can build while using minimal
-      # resources.
-      fail-fast: false
-      matrix:
-        include:
-        - platform: linux/amd64
-          runner: ubuntu-latest
-        - platform: linux/arm64
-          runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+  build-amd64:
+    # Docker image builds are expensive. Run them automatically on pushes
+    # to `main`, or on PRs only when the repo variable
+    # `DOCKER_BUILD_TEST_BRANCH` matches the PR branch name.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.head_ref == vars.DOCKER_BUILD_TEST_BRANCH
+    name: Build (linux/amd64)
+    runs-on: ubuntu-latest
 
     steps:
       - name: Save Space on Runner Image
@@ -95,4 +91,76 @@ jobs:
         run: |
           echo "Processing docker image"
           cd docker/isabelle-e2eviv
-          IMAGE_PLATFORM=${{ matrix.platform }} make image
+          IMAGE_PLATFORM=linux/amd64 make image
+
+  build-arm64:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.head_ref == vars.DOCKER_BUILD_TEST_BRANCH
+    name: Build (linux/arm64)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Save Space on Runner Image
+        run: |
+          echo "Space Before Cleaning"
+          df -h
+
+          # Remove Java (JDKs)
+          sudo rm -rf /usr/lib/jvm
+
+          # Remove .NET SDKs
+          sudo rm -rf /usr/share/dotnet
+
+          # Remove Swift toolchain
+          sudo rm -rf /usr/share/swift
+
+          # Remove Haskell (GHC)
+          sudo rm -rf /usr/local/.ghcup
+
+          # Remove Julia
+          sudo rm -rf /usr/local/julia*
+
+          # Remove Android SDKs
+          sudo rm -rf /usr/local/lib/android
+
+          # Remove Chromium
+          sudo rm -rf /usr/local/share/chromium
+
+          # Remove Microsoft/Edge and Google Chrome builds
+          sudo rm -rf /opt/microsoft /opt/google
+
+          # Remove Azure CLI
+          sudo rm -rf /opt/az
+
+          # Remove PowerShell
+          sudo rm -rf /usr/local/share/powershell
+
+          # Remove CodeQL and other toolcaches
+          sudo rm -rf /opt/hostedtoolcache
+
+          echo "Space After Cleaning"
+          df -h
+
+      - name: Uninstall Old Docker
+        run: |
+          sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
+
+      - name: Install Current Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Run `make image` in `docker/isabelle-e2eviv`
+        run: |
+          echo "Processing docker image"
+          cd docker/isabelle-e2eviv
+          IMAGE_PLATFORM=linux/arm64 make image

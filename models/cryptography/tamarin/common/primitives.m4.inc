@@ -3,7 +3,7 @@ dnl Tamarin built-ins, functions, equations, macros, and restrictions used
 dnl across the models.
 dnl
 dnl @author Daniel M. Zimmerman
-dnl @copyright Free & Fair 2025
+dnl @copyright Free & Fair 2025-26
 dnl @version 0.1
 dnl
 dnl We always include all the Tamarin built-ins we might need, if they
@@ -36,7 +36,7 @@ define(<!INCLUDED_EUFCMA_SIGNING!>)dnl
  */
 
 functions:
-  sign/3, e1_sig/1 [private], e3_sig/1 [private], pk/1, true/0, false/0
+  sign/3, e1_sig/1 [private], e3_sig/1 [private], true/0, false/0
 
 equations:
   e1_sig(sign(x, y, z)) = x,

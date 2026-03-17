@@ -1,7 +1,7 @@
 # .github/workflows/build-release.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-01-22
-# Modified: 2026-02-06
+# Modified: 2026-03-31
 
 # This workflow tests the validity of the threat model by building
 # the database and the PDF.
@@ -31,7 +31,7 @@ jobs:
             scheme-full
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Python Dependencies for Threat Model
         run: |
@@ -49,13 +49,13 @@ jobs:
           make html pdf
 
       - name: Save the Generated Threat Model PDF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generated_threat_model_pdf
           path: models/threat-model/threat-model.pdf
 
       - name: Save the Generated Threat Model HTML
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: generated_threat_model_html
           path: models/threat-model/threat-model.html

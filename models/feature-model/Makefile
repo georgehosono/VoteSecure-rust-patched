@@ -4,6 +4,44 @@
 # Possible targets: make [help|check|skin|instances|sysml|plantuml|clean]      #
 ################################################################################
 
+SHELL := /bin/bash
+
+# Docker fallback configuration for CI.
+DOCKER ?= docker
+PLE_IMAGE ?= freeandfair/de-ple-e2eviv:latest
+IMAGE_PLATFORM ?=
+DOCKER_PLATFORM_ARG := $(if $(strip $(IMAGE_PLATFORM)),--platform=$(strip $(IMAGE_PLATFORM)),)
+USE_DOCKER ?= no
+ifneq ($(filter yes YES true TRUE 1,$(DOCKER)),)
+$(error DOCKER must name a container engine like docker or podman; use USE_DOCKER=yes to force container-backed execution)
+endif
+FORCE_DOCKER := $(if $(filter yes YES true TRUE 1,$(USE_DOCKER)),yes,)
+
+# Local Python environment configuration for helper scripts.
+PYTHON ?= python3
+VENV_DIR ?= .venv
+VENV_PYTHON := $(VENV_DIR)/bin/python3
+PYTHON_REQUIREMENTS := requirements.txt
+PYTHON_BOOTSTRAP ?= no
+
+# Use the local venv interpreter when present; otherwise fall back to PYTHON.
+PYTHON_CMD := $(if $(wildcard $(VENV_PYTHON)),$(VENV_PYTHON),$(PYTHON))
+
+# Docker invocation used when required local PLE tools are unavailable.
+PLE_DOCKER_RUN = $(DOCKER) run --rm $(DOCKER_PLATFORM_ARG) -v "$(CURDIR)":/workspace -w /workspace $(PLE_IMAGE)
+
+# Per-tool commands: use the PLE Docker image unconditionally when
+# USE_DOCKER=yes; otherwise prefer local binaries and fall back to Docker.
+CLAFER_CMD = $(if $(FORCE_DOCKER),$(PLE_DOCKER_RUN) clafer,$(if $(shell command -v clafer 2>/dev/null),clafer,$(PLE_DOCKER_RUN) clafer))
+CLAFERIG_CMD = $(if $(FORCE_DOCKER),$(PLE_DOCKER_RUN) claferIG,$(if $(shell command -v claferIG 2>/dev/null),claferIG,$(PLE_DOCKER_RUN) claferIG))
+CHOCOSOLVER_CMD = $(if $(FORCE_DOCKER),$(PLE_DOCKER_RUN) chocosolver,$(if $(shell command -v chocosolver 2>/dev/null),chocosolver,$(PLE_DOCKER_RUN) chocosolver))
+PLANTUML_CMD = $(if $(FORCE_DOCKER),$(PLE_DOCKER_RUN) plantuml,$(if $(shell command -v plantuml 2>/dev/null),plantuml,$(PLE_DOCKER_RUN) plantuml))
+
+# Python helpers are intentionally run locally (not in Docker).
+CHOCO_TO_JSON_CMD = $(PYTHON_CMD) ./scripts/choco_to_json.py
+EXTRACT_INSTANCES_CMD = $(PYTHON_CMD) ./scripts/extract_instances.py
+REMOVE_DUPLICATES_CMD = $(PYTHON_CMD) ./scripts/remove_duplicates.py
+
 # Basename of the Clafer model and verious derived files.
 BASENAME = e2eviv
 
@@ -57,7 +95,7 @@ MAGENTA := \033[1;35m
 CYAN    := \033[1;36m
 WHITE   := \033[1;37m
 
-# Target to display a help message on how to use the makefile.
+# Target to display a help message on how to use the Makefile.
 help:
 	@echo "Possible $(BOLD)make$(RESET) targets are:"
 	@echo "make $(RED)help$(RESET) (default) - Displays this help message"
@@ -75,17 +113,60 @@ help:
 	@echo "                      This uses the skinned model for reasons of complexity."
 	@echo "make $(RED)all$(RESET)            - Executes all relevant targets of the CI pipeline:"
 	@echo "	              make $(BOLD)check instances sysml plantuml$(RESET)"
+	@echo "make $(RED)python-requirements$(RESET) - Installs Python dependencies from $(PYTHON_REQUIREMENTS)"
+	@echo "make $(RED)python-venv$(RESET)    - Creates $(VENV_DIR) and installs Python dependencies"
+	@echo "make $(RED)python-check$(RESET)   - Verifies local Python + required modules are available"
+	@echo "make $(RED)python-ensure$(RESET)  - Auto-bootstraps Python env when PYTHON_BOOTSTRAP=yes"
 	@echo "make $(RED)clean$(RESET)          - Removes all dynamically created files"
 	@echo "Note that $(BOLD)make explore$(RESET) currently does not work due to a JDK stack overflow."
+
+# Installs Python dependencies using the currently selected interpreter.
+python-requirements:
+	$(info Installing Python dependencies from $(PYTHON_REQUIREMENTS) using $(PYTHON_CMD) ...)
+	$(PYTHON_CMD) -m pip install -r $(PYTHON_REQUIREMENTS)
+
+# Creates an isolated Python virtual environment and installs dependencies.
+python-venv:
+	$(info Creating Python virtual environment under $(VENV_DIR) ...)
+	$(PYTHON) -m venv $(VENV_DIR)
+	$(VENV_PYTHON) -m pip install --upgrade pip
+	$(VENV_PYTHON) -m pip install -r $(PYTHON_REQUIREMENTS)
+
+# Fails fast if Python dependencies required by helper scripts are unavailable.
+python-check:
+	@set -euo pipefail; \
+	if ! command -v "$(PYTHON_CMD)" >/dev/null 2>&1 && [ ! -x "$(PYTHON_CMD)" ]; then \
+		echo "[error] no usable Python interpreter found (checked: $(PYTHON_CMD))"; \
+		echo "[hint] run 'make python-venv'"; \
+		exit 1; \
+	fi; \
+	if ! $(PYTHON_CMD) -c "import lark" >/dev/null 2>&1; then \
+		echo "[error] missing Python dependency: lark"; \
+		echo "[hint] run 'make python-venv' (recommended) or 'make python-requirements'"; \
+		exit 1; \
+	fi
+
+# Ensures Python dependencies are available; optionally bootstraps venv.
+python-ensure:
+	@set -euo pipefail; \
+	if [ "$(PYTHON_BOOTSTRAP)" = "yes" ]; then \
+		echo "[info] PYTHON_BOOTSTRAP=yes; creating/updating Python venv"; \
+		$(MAKE) python-venv; \
+	else \
+		$(MAKE) python-check; \
+	fi
 
 # Executes all relevant targets of the CI pipeline.
 all: check skin instances plantuml sysml
 	@echo "All commands executed successfully! [$(GREEN)OK$(RESET)]"
 
+# CI is the same as the standard full build.
+ci: all
+
 # Parses the Clafer model, performing syntactic and type checking.
 check:
 	$(info Syntax and type-checking the $(CLAFER_FILE) Clafer model ...)
-	clafer $(CLAFER_FILE)
+	$(CLAFER_CMD) $(CLAFER_FILE)
 
 # Generates skinned versions of the e2eviv.cfr Clafer model file.
 # This also includes a skinned file with optimization constraints enabled.
@@ -99,45 +180,45 @@ skin:
 # -> Please use the chocosolver_instances target instead which works fine!
 claferIG_instances: skin
 	$(info Generating cumulative instances under the '$(INSTANCES_DIR)' directory ...)
-	claferIG $(CLAFER_IG_OPTS) --savedir=$(INSTANCES_DIR) --addtypes --all $(SKINNED_FILE)
+	$(CLAFERIG_CMD) $(CLAFER_IG_OPTS) --savedir=$(INSTANCES_DIR) --addtypes --all $(SKINNED_FILE)
 
 # Uses claferIG to create optimal instances (under 'optimal').
 # Note that claferIG seems to be slow and running out of stack space ...
 # -> Please use the chocosolver_instances target instead which works fine!
 claferIG_optimal: skin
 	$(info Generating optimal instances under the '$(OPTIMAL_DIR)' directory ...)
-	claferIG $(CLAFER_IG_OPTS) --savedir=$(OPTIMAL_DIR) --addtypes --all $(SKINNED_OPT_FILE)
+	$(CLAFERIG_CMD) $(CLAFER_IG_OPTS) --savedir=$(OPTIMAL_DIR) --addtypes --all $(SKINNED_OPT_FILE)
 
 # Uses chocosolver to create cumulative instances (under 'instances').
 chocosolver_instances: skin
 	$(info Generating cumulative instances under the '$(INSTANCES_DIR)' directory ...)
-	chocosolver $(CLAFER_IG_OPTS) --file=$(SKINNED_FILE) --output $(INSTANCES_DIR)/instances.txt
+	$(CHOCOSOLVER_CMD) $(CLAFER_IG_OPTS) --file=$(SKINNED_FILE) --output $(INSTANCES_DIR)/instances.txt
 
 # Uses chocosolver to create optimal instances (under 'optimal').
 chocosolver_optimal: skin
 	$(info Generating optimal instances under the '$(OPTIMAL_DIR)' directory ...)
-	chocosolver $(CLAFER_IG_OPTS) --file=$(SKINNED_OPT_FILE) --output $(OPTIMAL_DIR)/instances.txt
+	$(CHOCOSOLVER_CMD) $(CLAFER_IG_OPTS) --file=$(SKINNED_OPT_FILE) --output $(OPTIMAL_DIR)/instances.txt
 
-convert_to_json:
+convert_to_json: python-ensure
 	$(info Converting Clafer instance specifications to JSON format)
-	./scripts/choco_to_json.py -v --file=$(INSTANCES_DIR)/instances.txt $(INSTANCES_DIR)-json
-	./scripts/choco_to_json.py -v --file=$(OPTIMAL_DIR)/instances.txt $(OPTIMAL_DIR)-json
+	$(CHOCO_TO_JSON_CMD) -v --file=$(INSTANCES_DIR)/instances.txt $(INSTANCES_DIR)-json
+	$(CHOCO_TO_JSON_CMD) -v --file=$(OPTIMAL_DIR)/instances.txt $(OPTIMAL_DIR)-json
 	@echo
 
 # Extracts individual e2eviv.<N>.inst files from instances.txt.
-extract_instances:
+extract_instances: python-ensure
 	$(info Extracting instances from instance.txt files ...)
-	./scripts/extract_instances.py $(INSTANCES_DIR)
-	./scripts/extract_instances.py $(OPTIMAL_DIR)
+	$(EXTRACT_INSTANCES_CMD) $(INSTANCES_DIR)
+	$(EXTRACT_INSTANCES_CMD) $(OPTIMAL_DIR)
 	@echo
 
 # Purges duplicate .inst files from the 'instances' and 'optimal' folders.
-remove_duplicates:
+remove_duplicates: python-ensure
 	$(info Removing duplicate instances due to claferIG bug (?) ...)
-	./scripts/remove_duplicates.py -v -e inst $(INSTANCES_DIR)
-	./scripts/remove_duplicates.py -v -e json $(INSTANCES_DIR)-json
-	./scripts/remove_duplicates.py -v -e inst $(OPTIMAL_DIR)
-	./scripts/remove_duplicates.py -v -e json $(OPTIMAL_DIR)-json
+	$(REMOVE_DUPLICATES_CMD) -v -e inst $(INSTANCES_DIR)
+	$(REMOVE_DUPLICATES_CMD) -v -e json $(INSTANCES_DIR)-json
+	$(REMOVE_DUPLICATES_CMD) -v -e inst $(OPTIMAL_DIR)
+	$(REMOVE_DUPLICATES_CMD) -v -e json $(OPTIMAL_DIR)-json
 	@echo
 
 # By default, we use the Chocosolver for instance generation.
@@ -148,7 +229,7 @@ instances: chocosolver_instances chocosolver_optimal extract_instances convert_t
 # TODO @elew: This does not seem to work yet. Could you please debug?
 sysml:
 	$(info Creating a SysML model from the Clafer feature model ...)
-	chocosolver --sysml \
+	$(CHOCOSOLVER_CMD) --sysml \
             $(CLAFER_IG_OPTS) \
             --file $(CLAFER_FILE) \
             --output $(SYSML_DIR)/$(SYSML_FILE) \
@@ -158,21 +239,19 @@ sysml:
 # Creates a PlantUML diagram of the complete Clafer feature model.
 plantuml:
 	$(info Creating a PlantUML diagram from the Clafer feature model ...)
-	chocosolver --plantuml \
+	$(CHOCOSOLVER_CMD) --plantuml \
             $(CLAFER_IG_OPTS) \
             --file $(CLAFER_FILE) \
             --output $(PLANTUML_DIR)/$(PLANTUML_FILE) \
             --plantuml-config $(PLANTUML_CONFIG)
-	plantuml plantuml/$(PLANTUML_FILE)
+	$(PLANTUML_CMD) plantuml/$(PLANTUML_FILE)
 	@echo
 
 # Starts the claferIG shell in order to explore instances.
 # Due to complexity issues, we use the skinned model here.
-# TODO elew: As noted in the help message, explore currently does not work due
-# to a JDK stack overflow. Could you debug this and perhaps find a workaround?
 explore: skin
 	$(info Instance generation for $(SKINNED_FILE) ...)
-	claferIG $(CLAFER_IG_OPTS) $(SKINNED_FILE)
+	$(CLAFERIG_CMD) $(CLAFER_IG_OPTS) $(SKINNED_FILE)
 
 # Removes all dynamically created files.
 clean:
@@ -186,4 +265,5 @@ clean:
 	rm -f $(PLANTUML_DIR)/$(PLANTUML_FILE) $(PLANTUML_DIR)/$(BASENAME).png
 
 # Permissible make commands are defined as phony targets.
-.PHONY: help check skin instances sysml plantuml explore all clean
+.PHONY: help check skin instances sysml plantuml explore all ci \
+	python-requirements python-venv python-check python-ensure clean

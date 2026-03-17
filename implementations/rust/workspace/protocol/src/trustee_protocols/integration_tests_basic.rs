@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 Free & Fair
+// Copyright 2025-26 Free & Fair
 // See LICENSE.md for details
 
 //! Basic end-to-end test of the trustee protocols. This tests

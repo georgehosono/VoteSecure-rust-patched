@@ -18,7 +18,3 @@ It also includes interfaces that must be implemented by:
 - Authentication Server
 - Public Bulletin Board
 - Storage Layer for Digital Ballot Box
-
-## Usage
-
-To be written (most likely in a different, more comprehensive document).

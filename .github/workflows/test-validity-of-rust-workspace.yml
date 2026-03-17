@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-rust-workspace.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-09-03
-# Modified: 2025-09-03
+# Modified: 2026-03-31
 
 name: Test Validity of Rust Workspace
 
@@ -13,6 +13,8 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'implementations/rust/workspace/**'
   workflow_dispatch:
 
 env:
@@ -20,11 +22,11 @@ env:
 
 jobs:
   test:
-    name: Run Rust Lints and Tests
+    name: Run Rust Workspace CI Checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Switch to Nightly Rust
         run: |
@@ -34,7 +36,7 @@ jobs:
           rustup --version
 
       - name: Set up Cargo Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         continue-on-error: false
         with:
           path: |
@@ -63,7 +65,6 @@ jobs:
           # we haven't decided exactly what set of checks we want.
           cargo deny --workspace --manifest-path $RUST_MANIFEST_PATH check bans advisories sources
 
-      - name: Build and Test the Rust Workspace
+      - name: Build the Rust Workspace
         run: |
           cargo build --release --manifest-path $RUST_MANIFEST_PATH
-          cargo test --release --manifest-path $RUST_MANIFEST_PATH -- --test-threads=1

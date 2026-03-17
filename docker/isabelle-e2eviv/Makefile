@@ -12,23 +12,20 @@ IMAGE_PROVIDER := freeandfair
 # Name of the Docker image.
 IMAGE := isabelle-e2eviv
 
-# Image platform to use (linux/amd64 is a robust option for GitHub CI).
-IMAGE_PLATFORM ?= "linux/amd64,linux/arm64"
+# Image platform(s) to use. By default this builds for both AMD64 and ARM64.
+IMAGE_PLATFORM ?= linux/amd64,linux/arm64
 
 # Docker-compatible command to use. A standard alternative is `podman`.
 # Override via an environment variable (e.g., "make DOCKER=podman ...").
-DOCKER := docker
+DOCKER ?= docker
 
-# Different command line options for Podman, in the event that we
-# need them. This was inspired by trying to fix a build problem, and
-# even though it doesn't do anything right now it might in the future.
+# We use different build arguments depending on the container engine.
 DOCKER_VERSION := $(shell $(DOCKER) --version)
 DOCKER_OR_PODMAN := $(firstword $(DOCKER_VERSION))
-
-# For Podman, we do not use Docker-specific attestation or SBOM options.
 ifeq ($(DOCKER_OR_PODMAN), podman)
 DOCKER_BUILD_ARGS=--platform=$(IMAGE_PLATFORM)
 else
+# For Docker, we use Docker-specific attestation and SBOM options
 DOCKER_BUILD_ARGS=--platform=$(IMAGE_PLATFORM) --attest type=provenance,mode=max --attest type=sbom
 endif
 
@@ -63,10 +60,18 @@ logout:
 # Create Docker image in local store.
 image:
 	$(info [info] rebuilding $(IMAGE) Docker image ...)
-	$(DOCKER) buildx build -t $(IMAGE) $(DOCKER_BUILD_ARGS) .
+	$(DOCKER) buildx build --load -t $(IMAGE) $(DOCKER_BUILD_ARGS) .
 
 # Pull Docker image from Docker Hub repository.
-pull: login
+# If read-only credentials are present, use them; otherwise pull anonymously.
+pull:
+	@if [ -n "$$DOCKER_READ_ONLY_TOKEN" ] && [ -n "$$DOCKER_READ_ONLY_TOKEN_USERNAME" ]; then \
+		echo "[info] authenticating to Docker Hub with read-only token"; \
+		printf '%s\n' "$$DOCKER_READ_ONLY_TOKEN" | \
+			$(DOCKER) login $(DOCKER_REPOSITORY) -u "$$DOCKER_READ_ONLY_TOKEN_USERNAME" --password-stdin; \
+	else \
+		echo "[info] no Docker read-only token provided; pulling anonymously"; \
+	fi
 	$(DOCKER) pull $(IMAGE_PROVIDER)/$(IMAGE):latest
 
 # Push Docker image to Docker Hub repository.

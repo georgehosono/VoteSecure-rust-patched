@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 # Processes all E2EVIV .lando files in the current directory
 # and produces a Clafer fragment that encodes all requirements
 # found in those files, organized in groups (i.e., subclafers).

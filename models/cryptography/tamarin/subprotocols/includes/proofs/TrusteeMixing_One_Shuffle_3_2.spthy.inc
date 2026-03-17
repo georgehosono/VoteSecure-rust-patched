@@ -3,40 +3,48 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
   case TrusteeMixing_TAS_Init_case_3
   solve( !Trustee_Mix_Active( t1 ) ▶₁ #j )
     case TrusteeMixing_TAS_Init_case_1
-    solve( !Trustee_ElectionSetup( 'Trustee2', election_setup ) ▶₃ #j )
+    solve( !Trustee_ElectionSetup( 'Trustee2', election_setup
+           ) ▶₃ #j )
       case Mock_TrusteeElectionSetup
-      solve( !Trustee_Secret_Keys( 'Trustee2', sk_sign, sk_encrypt_unused
+      solve( !Trustee_Secret_Keys( 'Trustee2', sk_sign,
+                                   sk_encrypt_unused
              ) ▶₄ #j )
         case Mock_TrusteeElectionSetup
         solve( Trustee_Shuffle_Trace( 'Trustee1', o, s, p ) @ #i )
           case TrusteeMixing_Trustee_1_Shuffle
-          solve( !Trustee_ElectionSetup( 'Trustee1', election_setup ) ▶₂ #i )
+          solve( !Trustee_ElectionSetup( 'Trustee1', election_setup
+                 ) ▶₂ #i )
             case Mock_TrusteeElectionSetup
-            solve( !Trustee_Secret_Keys( 'Trustee1', sk_sign, sk_encrypt_unused
+            solve( !Trustee_Secret_Keys( 'Trustee1', sk_sign,
+                                         sk_encrypt_unused
                    ) ▶₃ #i )
               case Mock_TrusteeElectionSetup
               solve( !Trustee_BBEntry( 'Trustee2', 'Trustee1',
-                                       <<'Trustee_EG_Cryptograms', 'Trustee1', 'Trustee1'>, ~election_setup,
+                                       <
+                                        <'Trustee_EG_Cryptograms', 'Trustee1',
+                                         'Trustee1'>,
+                                        ~election_setup,
                                         shuffle_order(prev_prev_ballot_order, ballot_set, prev_r),
-                                        ballot_set, shuffle_proof(prev_prev_ballot_order, ballot_set, prev_r)
+                                        ballot_set,
+                                        shuffle_proof(prev_prev_ballot_order, ballot_set, prev_r)
                                        >,
                                        sig_shuffled_ballots, %idx_shuffled_ballots
                      ) ▶₂ #j )
                 case TrusteeBoard_Trustee_Update_case_10
-                solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
-                                          pk(~sk_encrypt_trustee1)
+                solve( TAS_Trustee_Trace( 'Trustee1',
+                                          pk(~sk_sign_trustee1), pk(~sk_encrypt_trustee1)
                        ) @ #j.6 )
                   case Mock_TrusteeElectionSetup
                   solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k )
                     case Mock_TrusteeElectionSetup
-                    solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
-                                              pk(~sk_encrypt_trustee1)
+                    solve( TAS_Trustee_Trace( 'Trustee1',
+                                              pk(~sk_sign_trustee1), pk(~sk_encrypt_trustee1)
                            ) @ #j.6 )
                       case Mock_TrusteeElectionSetup
                       solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k.1 )
                         case Mock_TrusteeElectionSetup
-                        solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
-                                                  pk(~sk_encrypt_trustee2)
+                        solve( TAS_Trustee_Trace( 'Trustee2',
+                                                  pk(~sk_sign_trustee2), pk(~sk_encrypt_trustee2)
                                ) @ #j.6 )
                           case Mock_TrusteeElectionSetup
                           solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
@@ -49,7 +57,9 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                 case Mock_TrusteeElectionSetup
                                 solve( Trustee_Sent_Msg_Trace( 'Trustee1',
                                                                <
-                                                                <'Trustee_EG_Cryptograms', 'Trustee0',
+                                                                <
+                                                                 'Trustee_EG_Cryptograms',
+                                                                 'Trustee0',
                                                                  'Trustee1'>,
                                                                 ~election_setup, ~ballot_order,
                                                                 <
@@ -69,7 +79,8 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                   case TrusteeMixing_Check_Encryption_Proofs_Success
                                   solve( !Trustee_BBEntry( 'Trustee1', 'Trustee1',
                                                            <
-                                                            <'Trustee_EG_Cryptograms', 'Trustee0', 'Trustee1'
+                                                            <'Trustee_EG_Cryptograms',
+                                                             'Trustee0', 'Trustee1'
                                                             >,
                                                             ~election_setup, ~ballot_order,
                                                             <
@@ -86,7 +97,9 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                             >,
                                                             'no shuffle'>,
                                                            sign(<
-                                                                 <'Trustee_EG_Cryptograms', 'Trustee0',
+                                                                 <
+                                                                  'Trustee_EG_Cryptograms',
+                                                                  'Trustee0',
                                                                   'Trustee1'>,
                                                                  ~election_setup, ~ballot_order,
                                                                  <
@@ -108,13 +121,16 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                     case TrusteeBoard_Trustee_Update
                                     solve( TAS_Trustee_Trace( 'Trustee0', pk(~sk_sign_tas),
                                                               pk(~sk_encrypt_unused)
-                                           ) @ #j.6 )
+                                           ) @ #j.7 )
                                       case TrusteeMixing_TAS_Init
                                       solve( HonestSignatureKey( pk(~sk_sign_tas) ) @ #k.1 )
                                         case Mock_TrusteeElectionSetup
-                                        solve( !Trustee_BBEntry( 'Trustee1', 'Trustee2',
+                                        solve( !Trustee_BBEntry( 'Trustee1',
+                                                                 'Trustee2',
                                                                  <
-                                                                  <'Trustee_EG_Cryptograms', 'Trustee0',
+                                                                  <
+                                                                   'Trustee_EG_Cryptograms',
+                                                                   'Trustee0',
                                                                    'Trustee2'>,
                                                                   ~election_setup, ~ballot_order,
                                                                   <
@@ -131,9 +147,12 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                   >,
                                                                   'no shuffle'>,
                                                                  sign(<
-                                                                       <'Trustee_EG_Cryptograms', 'Trustee0',
+                                                                       <
+                                                                        'Trustee_EG_Cryptograms',
+                                                                        'Trustee0',
                                                                         'Trustee2'>,
-                                                                       ~election_setup, ~ballot_order,
+                                                                       ~election_setup,
+                                                                       ~ballot_order,
                                                                        <
                                                                         ny_encrypt_c1(~ballots,
                                                                                       threshold_pubkey(check_value(~private_share1),
@@ -147,13 +166,15 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                                       ~r)
                                                                        >,
                                                                        'no shuffle'>,
-                                                                      '1', ~sk_sign_trustee2),
+                                                                      '1',
+                                                                      ~sk_sign_trustee2),
                                                                  %idx_signed_shuffle2
                                                ) ▶₁ #i )
                                           case TrusteeBoard_Trustee_Update
-                                          solve( TAS_Trustee_Trace( 'Trustee0', pk(~sk_sign_tas),
+                                          solve( TAS_Trustee_Trace( 'Trustee0',
+                                                                    pk(~sk_sign_tas),
                                                                     pk(~sk_encrypt_unused)
-                                                 ) @ #j.6 )
+                                                 ) @ #j.7 )
                                             case TrusteeMixing_TAS_Init
                                             solve( HonestSignatureKey( pk(~sk_sign_tas) ) @ #k.1 )
                                               case Mock_TrusteeElectionSetup
@@ -161,17 +182,21 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                                      %idx_shuffled_ballots
                                                      ) ▶₀ #vr.3 )
                                                 case TrusteeBoard_Trustee_Update_case_06
-                                                solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
+                                                solve( TAS_Trustee_Trace( 'Trustee1',
+                                                                          pk(~sk_sign_trustee1),
                                                                           pk(~sk_encrypt_trustee1)
-                                                       ) @ #j.6 )
+                                                       ) @ #j.7 )
                                                   case Mock_TrusteeElectionSetup
-                                                  solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k.1 )
+                                                  solve( HonestSignatureKey( pk(~sk_sign_trustee1)
+                                                         ) @ #k.1 )
                                                     case Mock_TrusteeElectionSetup
-                                                    solve( TAS_Trustee_Trace( 'Trustee0', pk(~sk_sign_tas),
+                                                    solve( TAS_Trustee_Trace( 'Trustee0',
+                                                                              pk(~sk_sign_tas),
                                                                               pk(~sk_encrypt_unused)
                                                            ) @ #j.6 )
                                                       case TrusteeMixing_TAS_Init
-                                                      solve( HonestSignatureKey( pk(~sk_sign_tas) ) @ #k.1 )
+                                                      solve( HonestSignatureKey( pk(~sk_sign_tas)
+                                                             ) @ #k.1 )
                                                         case Mock_TrusteeElectionSetup
                                                         solve( TAS_State_ReceiveTrusteeMessage( (
                                                                                                  %idx_signed_shuffle1%+
@@ -181,7 +206,7 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                           solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                     pk(~sk_sign_trustee1),
                                                                                     pk(~sk_encrypt_trustee1)
-                                                                 ) @ #j.6 )
+                                                                 ) @ #j.7 )
                                                             case Mock_TrusteeElectionSetup
                                                             solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                    ) @ #k.1 )
@@ -201,7 +226,7 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                     solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                               pk(~sk_sign_trustee2),
                                                                                               pk(~sk_encrypt_trustee2)
-                                                                           ) @ #j.6 )
+                                                                           ) @ #j.7 )
                                                                       case Mock_TrusteeElectionSetup
                                                                       solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                              ) @ #k.1 )
@@ -236,7 +261,7 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                                     solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                               pk(~sk_sign_trustee2),
                                                                                                               pk(~sk_encrypt_trustee2)
-                                                                                           ) @ #j.6 )
+                                                                                           ) @ #j.7 )
                                                                                       case Mock_TrusteeElectionSetup
                                                                                       solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                              ) @ #k.1 )
@@ -395,7 +420,7 @@ solve( !Trustee_Mix_Active( t2 ) ▶₀ #j )
                                                                                                               solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                                                         pk(~sk_sign_trustee2),
                                                                                                                                         pk(~sk_encrypt_trustee2)
-                                                                                                                     ) @ #j.7 )
+                                                                                                                     ) @ #j.8 )
                                                                                                                 case Mock_TrusteeElectionSetup
                                                                                                                 solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                                                        ) @ #k.1 )

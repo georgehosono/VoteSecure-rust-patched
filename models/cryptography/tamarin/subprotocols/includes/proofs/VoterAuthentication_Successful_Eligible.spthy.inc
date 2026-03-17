@@ -15,7 +15,7 @@ solve( (∃ #j.
     solve( AS_State_AwaitAuthentication( ~session_id, ~token ) ▶₀ #j )
       case VoterAuthentication_AS_AuthenticationRequest_case_1
       solve( EAS_ReceiveAuthenticationResult_Trace( ~session_id, v,
-                                                    pseudo, ballot_style.2
+                                                    pseudo, ballot_style.4
              ) @ #j.3 )
         case VoterAuthentication_EAS_ReceiveAuthenticationResult_Successful_Eligible
         solve( EAS_State_ReceiveAuthenticationResult( ~ec.1, ~cid_as,
@@ -86,109 +86,83 @@ solve( (∃ #j.
                                         solve( BallotStyleCount( ~ec, %i.2 ) ▶₀ #vr.8 )
                                           case Mock_BallotStyle
                                           solve( BallotStyleCount( ~ec, %unused.1 ) ▶₀ #vr.10 )
-                                            case Mock_EC_And_Initial_Counters
-                                            solve( BallotStyleCount( ~ec, %i.2 ) ▶₀ #vr.38 )
+                                            case Mock_BallotStyle
+                                            solve( VoterCount( ~ec, %unused ) ▶₀ #vr.17 )
                                               case Mock_EC_And_Initial_Counters
-                                              solve( BallotStyleCount( ~ec, %unused.1 ) ▶₀ #vr.18 )
-                                                case Mock_EC_And_Initial_Counters
-                                                solve( VoterCount( ~ec, %unused ) ▶₀ #vr.17 )
-                                                  case Mock_EC_And_Initial_Counters
-                                                  solve( SecureReceive( ~cid_va, ~v_id,
+                                              solve( SecureReceive( ~cid_va, ~v_id, <~ec, 'EAS'>,
+                                                                    <'VA_Authentication_Complete',
+                                                                     ~ec, pk(~sk_voter), ~token>
+                                                     ) ▶₁ #vr.11 )
+                                                case SecureChannel_Receive_case_1
+                                                solve( SecureReceive( ~cid_va, ~v_id, <~ec, 'EAS'>,
+                                                                      <
+                                                                       'VA_Authentication_Complete',
+                                                                       ~ec, pk(~sk_voter), ~token>
+                                                       ) ▶₁ #vr.20 )
+                                                  case SecureChannel_Receive_case_1
+                                                  solve( SecureReceive( ~cid_as.1, 'AS',
                                                                         <~ec, 'EAS'>,
                                                                         <
-                                                                         'VA_Authentication_Complete',
-                                                                         ~ec, pk(~sk_voter), ~token>
-                                                         ) ▶₁ #vr.11 )
+                                                                         'AS_Authentication_Session',
+                                                                         ~session_id, ~token>
+                                                         ) ▶₁ #vr.12 )
                                                     case SecureChannel_Receive_case_1
-                                                    solve( SecureReceive( ~cid_va, ~v_id,
-                                                                          <~ec, 'EAS'>,
+                                                    solve( SecureReceive( ~cid_as.1, <~ec, 'EAS'>,
+                                                                          'AS',
                                                                           <
-                                                                           'VA_Authentication_Complete',
-                                                                           ~ec, pk(~sk_voter),
-                                                                           ~token>
-                                                           ) ▶₁ #vr.25 )
+                                                                           'EAS_Request_Authentication_Result',
+                                                                           ~session_id>
+                                                           ) ▶₁ #vr.29 )
                                                       case SecureChannel_Receive_case_1
-                                                      solve( SecureReceive( ~cid_as, 'AS',
-                                                                            <~ec, 'EAS'>,
+                                                      solve( SecureReceive( ~cid.1, 'AS', ~v_id,
                                                                             <
-                                                                             'AS_Authentication_Session',
-                                                                             ~session_id, ~token>
-                                                             ) ▶₁ #vr.12 )
+                                                                             'AS_Authentication_Complete',
+                                                                             ~token>
+                                                             ) ▶₂ #vr.14 )
                                                         case SecureChannel_Receive_case_1
-                                                        solve( SecureReceive( ~cid, <~ec, 'EAS'>,
-                                                                              'AS',
+                                                        solve( SecureReceive( ~cid_va.1,
+                                                                              <~ec, 'EAS'>, ~v_id,
                                                                               <
-                                                                               'EAS_Request_Authentication_Result',
-                                                                               ~session_id>
-                                                               ) ▶₁ #vr.29 )
+                                                                               'EAS_Authentication_Session',
+                                                                               ~ec, pk(~sk_voter),
+                                                                               ~token>
+                                                               ) ▶₂ #vr.15 )
                                                           case SecureChannel_Receive_case_1
-                                                          solve( SecureReceive( ~cid.1, 'AS', ~v_id,
+                                                          solve( SecureReceive( ~cid_va.1, ~v_id,
+                                                                                <~ec, 'EAS'>,
                                                                                 <
-                                                                                 'AS_Authentication_Complete',
-                                                                                 ~token>
-                                                                 ) ▶₂ #vr.14 )
+                                                                                 'VA_Request_Authentication',
+                                                                                 ~ec, pk(~sk_voter)>
+                                                                 ) ▶₂ #vr.22 )
                                                             case SecureChannel_Receive_case_1
-                                                            solve( SecureReceive( ~cid_va.1,
-                                                                                  <~ec, 'EAS'>,
-                                                                                  ~v_id,
-                                                                                  <
-                                                                                   'EAS_Authentication_Session',
-                                                                                   ~ec,
-                                                                                   pk(~sk_voter),
-                                                                                   ~token>
-                                                                   ) ▶₂ #vr.15 )
-                                                              case SecureChannel_Receive_case_1
-                                                              solve( SecureReceive( ~cid_va.1,
-                                                                                    ~v_id,
-                                                                                    <~ec, 'EAS'>,
-                                                                                    <
-                                                                                     'VA_Request_Authentication',
-                                                                                     ~ec,
-                                                                                     pk(~sk_voter)>
-                                                                     ) ▶₂ #vr.36 )
-                                                                case SecureChannel_Receive_case_1
-                                                                solve( SecureReceive( ~cid_as.1,
-                                                                                      'AS',
-                                                                                      <~ec, 'EAS'>,
-                                                                                      <
-                                                                                       'AS_Authentication_Result',
-                                                                                       ~session_id.1,
-                                                                                       $EV,
-                                                                                       'successful'>
-                                                                       ) ▶₃ #vr.18 )
-                                                                  case SecureChannel_Receive_case_01
-                                                                  solve( (∃ #j.
-                                                                           (AS_SuccessfulAuthentication_Trace( ~session_id
-                                                                            ) @ #j)
-                                                                          ∧
-                                                                           #j < #vr.37)  ∥
-                                                                         (∃ #j.
-                                                                           (AS_UnsuccessfulAuthentication_Trace( ~session_id
-                                                                            ) @ #j)
-                                                                          ∧
-                                                                           #j < #vr.37) )
-                                                                    case case_1
-                                                                    solve( AS_State_AwaitAuthentication( ~session_id,
-                                                                                                         ~token.1
-                                                                           ) ▶₀ #j.7 )
-                                                                      case VoterAuthentication_AS_AuthenticationRequest_case_1
-                                                                      solve( SecureReceive( ~cid_va,
-                                                                                            ~v_id,
-                                                                                            <~ec,
-                                                                                             'EAS'>,
-                                                                                            <
-                                                                                             'VA_Authentication_Complete',
-                                                                                             ~ec,
-                                                                                             pk(~sk_voter),
-                                                                                             ~token>
-                                                                             ) ▶₁ #vr.19 )
-                                                                        case SecureChannel_Receive_case_1
-                                                                        solve( BallotStyleCount( ~ec,
-                                                                                                 %i.1
-                                                                               ) ▶₀ #vr.21 )
-                                                                          case Mock_EC_And_Initial_Counters
-                                                                          SOLVED // trace found
-                                                                        qed
+                                                            solve( BallotStyleCount( ~ec, %i.1
+                                                                   ) ▶₀ #vr.21 )
+                                                              case Mock_BallotStyle
+                                                              solve( BallotStyleCount( ~ec, %i.2
+                                                                     ) ▶₀ #vr.25 )
+                                                                case Mock_BallotStyle
+                                                                solve( BallotStyleCount( ~ec, %i.3
+                                                                       ) ▶₀ #vr.26 )
+                                                                  case Mock_EC_And_Initial_Counters
+                                                                  solve( SecureReceive( ~cid_as.1,
+                                                                                        'AS',
+                                                                                        <~ec, 'EAS'
+                                                                                        >,
+                                                                                        <
+                                                                                         'AS_Authentication_Session',
+                                                                                         ~session_id.1,
+                                                                                         ~token>
+                                                                         ) ▶₁ #vr.33 )
+                                                                    case SecureChannel_Receive_case_1
+                                                                    solve( BallotStyleCount( ~ec,
+                                                                                             %i.1
+                                                                           ) ▶₀ #vr.33 )
+                                                                      case Mock_EC_And_Initial_Counters
+                                                                      solve( BallotStyleCount( ~ec,
+                                                                                               %i.1
+                                                                             ) ▶₀ #vr.32 )
+                                                                        case Mock_EC_And_Initial_Counters
+                                                                        SOLVED // trace found
                                                                       qed
                                                                     qed
                                                                   qed

@@ -1,0 +1,3 @@
+# Python dependencies for feature-model helper scripts
+# choco_to_json.py requires the Lark parser toolkit.
+lark>=1.1.9

@@ -3,7 +3,7 @@
  * Section 10.3 of the EVS Draft, February 3, 2025.
  *
  * @author Frank Zeyda (frank.zeyda@freeandfair.us)
- * @copyright Free & Fair 2025
+ * @copyright Free & Fair 2025-26
  * @version 0.1
  */
 module Primitives::Pedersen::PedersenSeeded where

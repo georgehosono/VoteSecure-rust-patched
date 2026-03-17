@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-lando-files.yml
 # Author: Luke Myers, Daniel M. Zimmerman
 # Created: 2024-09-17
-# Modified: 2024-09-28
+# Modified: 2026-03-31
 
 name: Test Validity of Lando Files
 
@@ -9,6 +9,8 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - '**.lando'
   workflow_dispatch:
 
 jobs:
@@ -18,7 +20,7 @@ jobs:
       lando-files: ${{ steps.generate-matrix.outputs.lando-files }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Matrix
         id: generate-matrix
@@ -42,10 +44,10 @@ jobs:
         lando-file: ${{ fromJson(needs.build-matrix.outputs.lando-files) }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_READ_ONLY_TOKEN_USERNAME }}
           password: ${{ secrets.DOCKER_READ_ONLY_TOKEN }}

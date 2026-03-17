@@ -1,9 +1,9 @@
 # .github/workflows/run-makefile-for-cpv-docker-image.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-06-06
-# Modified: 2025-06-06
+# Modified: 2026-04-06
 
-name: Run Makefile for CPV Docker Image
+name: CPV Docker Image
 
 on:
   pull_request:
@@ -13,11 +13,19 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'docker/cpv-e2eviv/**'
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Build CPV Docker Image
+  build-amd64:
+    # Docker image builds are expensive. Run them automatically on pushes
+    # to `main`, or on PRs only when the repo variable
+    # `DOCKER_BUILD_TEST_BRANCH` matches the PR branch name.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.head_ref == vars.DOCKER_BUILD_TEST_BRANCH
+    name: Build (linux/amd64)
     runs-on: ubuntu-latest
     steps:
       - name: Uninstall Old Docker
@@ -35,10 +43,40 @@ jobs:
             }
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run `make image` in `docker/cpv-e2eviv`
         run: |
           echo "Processing docker image"
           cd docker/cpv-e2eviv
-          make image
+          IMAGE_PLATFORM=linux/amd64 make image
+
+  build-arm64:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.head_ref == vars.DOCKER_BUILD_TEST_BRANCH
+    name: Build (linux/arm64)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Uninstall Old Docker
+        run: |
+          sudo apt-get remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc
+
+      - name: Install Current Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Run `make image` in `docker/cpv-e2eviv`
+        run: |
+          echo "Processing docker image"
+          cd docker/cpv-e2eviv
+          IMAGE_PLATFORM=linux/arm64 make image

@@ -1,5 +1,8 @@
 #!/bin/bash
-set -e # exit immediately upon error(s)
+set -euo pipefail
+
+# Docker-compatible runtime command to use.
+DOCKER_CMD="${DOCKER:-docker}"
 
 # Name of the docker image to run
 IMAGE="isabelle-e2eviv"
@@ -11,7 +14,7 @@ WORKDIR="/work"
 VOLUME="$PWD:$WORKDIR"
 
 # Print an informative message about volume mapping.
-echo "Mapping current folder to /work inside the container."
+echo "Mapping current folder to $WORKDIR inside the container."
 
 # Run container interactively and automatically destroy it when exiting.
-docker run -it --rm -v "$VOLUME" -w "$WORKDIR" $IMAGE
+"$DOCKER_CMD" run -it --rm -v "$VOLUME" -w "$WORKDIR" "$IMAGE"

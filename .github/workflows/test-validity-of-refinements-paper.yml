@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-refinements-paper.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-02-20
-# Modified: 2025-06-19
+# Modified: 2026-03-31
 
 # This workflow tests the validity of the "Refinements Among
 # High Level Models" paper by building it. It also saves the
@@ -38,7 +38,7 @@ jobs:
             scheme-full
 
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Latexmk in Paper Directory
         run: |
@@ -46,7 +46,7 @@ jobs:
           latexmk --pdf refinements_paper.tex
 
       - name: Save the Generated PDF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: refinements_among_high_level_models_paper
           path: docs/papers/refinements_among_high_level_models/refinements_paper.pdf

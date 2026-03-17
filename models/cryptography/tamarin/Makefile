@@ -1,20 +1,27 @@
 #######################################################
 # Makefile for Tamarin model generation and checking  #
 # @author Daniel M. Zimmerman (dmz@@freeandfair.us)   #
-# @copyright Free & Fair 2025                         #
-# @version 0.1                                        #
+# @copyright Free & Fair                              #
+# @version 0.2                                        #
 #######################################################
 
-# Tamarin command path. This is normally just `tamarin-prover`,
-# but when run in CI, it is an invocation of a Docker container
-# instead.
-TAMARIN = tamarin-prover
-
-# Docker image information (used if DOCKER is defined in the environment)
-DOCKER_IMAGE = freeandfair/cpv-e2eviv:latest
-ifdef DOCKER
-	TAMARIN = docker run --volume "$(PWD):/work" --workdir /work $(DOCKER_IMAGE) tamarin-prover
+# Resolve the Tamarin command as follows:
+# - if USE_DOCKER=yes, use the CPV container unconditionally
+# - otherwise use local `tamarin-prover` when present
+# - otherwise fall back to the CPV container automatically
+DOCKER ?= docker
+USE_DOCKER ?= no
+DOCKER_IMAGE := freeandfair/cpv-e2eviv:latest
+IMAGE_PLATFORM ?=
+DOCKER_PLATFORM_ARG := $(if $(strip $(IMAGE_PLATFORM)),--platform=$(strip $(IMAGE_PLATFORM)),)
+ifneq ($(filter yes YES true TRUE 1,$(DOCKER)),)
+$(error DOCKER must name a container engine like docker or podman; use USE_DOCKER=yes to force container-backed execution)
 endif
+FORCE_DOCKER := $(if $(filter yes YES true TRUE 1,$(USE_DOCKER)),yes,)
+LOCAL_TAMARIN := $(shell command -v tamarin-prover 2>/dev/null)
+
+DOCKER_TAMARIN := $(DOCKER) run --rm $(DOCKER_PLATFORM_ARG) --volume "$(CURDIR):/work" --workdir /work $(DOCKER_IMAGE) tamarin-prover
+TAMARIN := $(if $(FORCE_DOCKER),$(DOCKER_TAMARIN),$(if $(LOCAL_TAMARIN),$(LOCAL_TAMARIN),$(DOCKER_TAMARIN)))
 
 # M4 defines (to control proof script inclusion)
 ifdef INCLUDE_PROOF_SCRIPTS
@@ -41,10 +48,16 @@ help:
 	@echo "executability  - check executability lemmas of all generated models (**)"
 	@echo "safety         - check safety lemmas of all generated models (**)"
 	@echo "proofscript    - check all lemmas with included proof scripts (**)"
+	@echo "ci             - regenerate models and perform syntax checks"
+	@echo "cv             - regenerate models and run CV proofs/checks"
 	@echo "clean          - remove all generated models and outputs"
 	@echo ""
 	@echo "Define the 'INCLUDE_PROOF_SCRIPTS' environment variable to include"
 	@echo "proof scripts in Tamarin output, where applicable."
+	@echo "Set USE_DOCKER=yes to force containerized Tamarin execution."
+	@echo "Otherwise local tamarin-prover is used when available, and the"
+	@echo "CPV image is used only as a fallback. Set DOCKER=<docker|podman>"
+	@echo "and/or IMAGE_PLATFORM=linux/amd64 when needed."
 	@echo
 	@echo "(*)  - see 'compositions/README.md' for more information about"
 	@echo "       what is built by this build target"

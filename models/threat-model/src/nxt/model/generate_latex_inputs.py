@@ -6,7 +6,7 @@
 # Usage: generate_latex_inputs [db_file]
 #
 # Daniel M. Zimmerman, January 2025
-# Copyright (C) 2025 Free & Fair
+# Copyright (C) 2025-26 Free & Fair
 
 import argparse
 import re

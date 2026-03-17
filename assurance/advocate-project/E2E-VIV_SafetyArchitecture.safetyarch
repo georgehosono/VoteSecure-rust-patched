@@ -6411,7 +6411,7 @@ event ATK22_2_V3 {
 }
 
 event ATK22_3_V2 {
-    description "The election administrator manipulates the bulletin board such that it does not not provide correct information about cryptograms in the ballot box."
+    description "The election administrator manipulates the bulletin board such that it does not provide correct information about cryptograms in the ballot box."
     type [security, functional]
     sources [ ADV ]
     allocation "E2E-VIV_FunctionalArchitecture.verifiability"
@@ -6419,7 +6419,7 @@ event ATK22_3_V2 {
 }
 
 event ATK22_4_V2 {
-    description "The election administrator manipulates the bulletin board such that it does not not provide correct election auditing information."
+    description "The election administrator manipulates the bulletin board such that it does not provide correct election auditing information."
     type [security, functional]
     sources [ ADV ]
     allocation "E2E-VIV_FunctionalArchitecture.verifiability"
@@ -6427,7 +6427,7 @@ event ATK22_4_V2 {
 }
 
 event ATK22_4_V3 {
-    description "The election administrator manipulates the bulletin board such that it does not not provide correct election auditing information."
+    description "The election administrator manipulates the bulletin board such that it does not provide correct election auditing information."
     type [security, functional]
     sources [ ADV ]
     allocation "E2E-VIV_FunctionalArchitecture.verifiability"

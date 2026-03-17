@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 # This script uses Cryptol's Python API to load (and typecheck) a
 # Cryptol project's modules, without checking their docstrings. Based

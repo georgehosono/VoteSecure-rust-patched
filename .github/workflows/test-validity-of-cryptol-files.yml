@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-cryptol-files.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-05-01
-# Modified: 2026-03-03
+# Modified: 2026-03-31
 
 # This action uses Cryptol project files and the Cryptol remote API to
 # typecheck all the Cryptol files in each project, but _not_ check
@@ -19,6 +19,9 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - '**.cry'
+      - '**/cryproject.toml'
 
   workflow_dispatch:
 
@@ -30,15 +33,15 @@ jobs:
       cryptol-project-dirs: ${{ steps.generate-matrix.outputs.cryptol-project-dirs }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate Matrix
         id: generate-matrix
         shell: bash
         run: |
           # Find all directories containing cryproject.toml files and
-          # convert to JSON array
-          dirs=$(find . -type f -name 'cryproject.toml' -exec dirname {} \; | xargs -0 -n1 printf "%s\n" | grep . | jq -R . | jq -s .)
+          # convert to JSON array using an end-to-end NUL-safe pipeline
+          dirs=$(find . -type f -name 'cryproject.toml' -print0 | xargs -0 -n1 dirname | grep . | jq -R . | jq -s .)
           # Set the output using multiline syntax
           echo "cryptol-project-dirs<<EOF" >> $GITHUB_OUTPUT
           echo "$dirs" >> $GITHUB_OUTPUT
@@ -74,7 +77,7 @@ jobs:
           pip install cryptol
       # Next, check out the repository
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           # Here, we check out the submodules; we did not do that above, because

@@ -1,7 +1,7 @@
 ################################################################################
 # Makefile to conveniently run Cryptol model verification                      #
 # @author Frank Zeyda (frank.zeyda@freeandfair.us)                             #
-# @copyright Free & Fair 2025                                                  #
+# @copyright Free & Fair 2025-26                                               #
 # @version 0.2                                                                 #
 ################################################################################
 

@@ -2,50 +2,54 @@ simplify
 solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
   case Mock_TrusteeElectionSetup
   solve( !TAS_BBEntry( 'Trustee1',
-                       <<'Trustee_EG_Cryptograms', 'Trustee2', 'Trustee1'>, ~election_setup, b,
-                        s, p>,
+                       <
+                        <'Trustee_EG_Cryptograms', 'Trustee2',
+                         'Trustee1'>,
+                        ~election_setup, b, s, p>,
                        sig_last_mix1, %idx_last_mix1
          ) ▶₁ #i )
     case TrusteeBoard_TAS_ReceiveTrusteeMessage_case_2
     solve( !TAS_BBEntry( 'Trustee2',
-                         <<'Trustee_EG_Cryptograms', 'Trustee2', 'Trustee2'>, ~election_setup,
-                          shuffle_order(prev_prev_ballot_order, s, prev_r), s,
-                          shuffle_proof(prev_prev_ballot_order, s, prev_r)>,
+                         <
+                          <'Trustee_EG_Cryptograms', 'Trustee2',
+                           'Trustee2'>,
+                          ~election_setup, shuffle_order(prev_prev_ballot_order, s, prev_r),
+                          s, shuffle_proof(prev_prev_ballot_order, s, prev_r)>,
                          sig_last_mix2, %idx_last_mix2
            ) ▶₂ #i )
       case TrusteeBoard_TAS_ReceiveTrusteeMessage_case_21
-      solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
-                                pk(~sk_encrypt_trustee1)
+      solve( TAS_Trustee_Trace( 'Trustee1',
+                                pk(~sk_sign_trustee1), pk(~sk_encrypt_trustee1)
              ) @ #j.8 )
         case Mock_TrusteeElectionSetup
         solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k )
           case Mock_TrusteeElectionSetup
-          solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
-                                    pk(~sk_encrypt_trustee2)
+          solve( TAS_Trustee_Trace( 'Trustee2',
+                                    pk(~sk_sign_trustee2), pk(~sk_encrypt_trustee2)
                  ) @ #j.8 )
             case Mock_TrusteeElectionSetup
             solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
               case Mock_TrusteeElectionSetup
-              solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
-                                        pk(~sk_encrypt_trustee1)
+              solve( TAS_Trustee_Trace( 'Trustee1',
+                                        pk(~sk_sign_trustee1), pk(~sk_encrypt_trustee1)
                      ) @ #j.8 )
                 case Mock_TrusteeElectionSetup
                 solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k.1 )
                   case Mock_TrusteeElectionSetup
-                  solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
-                                            pk(~sk_encrypt_trustee2)
+                  solve( TAS_Trustee_Trace( 'Trustee2',
+                                            pk(~sk_sign_trustee2), pk(~sk_encrypt_trustee2)
                          ) @ #j.8 )
                     case Mock_TrusteeElectionSetup
                     solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
                       case Mock_TrusteeElectionSetup
-                      solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
-                                                pk(~sk_encrypt_trustee1)
+                      solve( TAS_Trustee_Trace( 'Trustee1',
+                                                pk(~sk_sign_trustee1), pk(~sk_encrypt_trustee1)
                              ) @ #j.8 )
                         case Mock_TrusteeElectionSetup
                         solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k.1 )
                           case Mock_TrusteeElectionSetup
-                          solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
-                                                    pk(~sk_encrypt_trustee2)
+                          solve( TAS_Trustee_Trace( 'Trustee2',
+                                                    pk(~sk_sign_trustee2), pk(~sk_encrypt_trustee2)
                                  ) @ #j.8 )
                             case Mock_TrusteeElectionSetup
                             solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
@@ -58,7 +62,9 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                   case Mock_TrusteeElectionSetup
                                   solve( Trustee_Sent_Msg_Trace( 'Trustee1',
                                                                  <
-                                                                  <'Trustee_EG_Cryptograms', 'Trustee0',
+                                                                  <
+                                                                   'Trustee_EG_Cryptograms',
+                                                                   'Trustee0',
                                                                    'Trustee1'>,
                                                                   ~election_setup, ~ballot_order,
                                                                   <
@@ -78,7 +84,9 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                     case TrusteeMixing_Check_Encryption_Proofs_Success
                                     solve( Trustee_Sent_Msg_Trace( 'Trustee2',
                                                                    <
-                                                                    <'Trustee_EG_Cryptograms', 'Trustee1',
+                                                                    <
+                                                                     'Trustee_EG_Cryptograms',
+                                                                     'Trustee1',
                                                                      'Trustee2'>,
                                                                     ~election_setup,
                                                                     shuffle_order(~ballot_order,
@@ -124,25 +132,32 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                    >
                                            ) @ #j.7 )
                                       case TrusteeMixing_Trustee_Sign_Shuffle
-                                      solve( TAS_State_ReceiveTrusteeMessage( %idx_last_mix1 ) ▶₀ #vr )
+                                      solve( TAS_State_ReceiveTrusteeMessage( %idx_last_mix1
+                                             ) ▶₀ #vr )
                                         case TrusteeBoard_TAS_ReceiveTrusteeMessage_case_09
-                                        solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
+                                        solve( TAS_Trustee_Trace( 'Trustee2',
+                                                                  pk(~sk_sign_trustee2),
                                                                   pk(~sk_encrypt_trustee2)
-                                               ) @ #j.8 )
+                                               ) @ #j.14 )
                                           case Mock_TrusteeElectionSetup
-                                          solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
+                                          solve( HonestSignatureKey( pk(~sk_sign_trustee2)
+                                                 ) @ #k.1 )
                                             case Mock_TrusteeElectionSetup
-                                            solve( TAS_Trustee_Trace( 'Trustee1', pk(~sk_sign_trustee1),
+                                            solve( TAS_Trustee_Trace( 'Trustee1',
+                                                                      pk(~sk_sign_trustee1),
                                                                       pk(~sk_encrypt_trustee1)
                                                    ) @ #j.8 )
                                               case Mock_TrusteeElectionSetup
-                                              solve( HonestSignatureKey( pk(~sk_sign_trustee1) ) @ #k.1 )
+                                              solve( HonestSignatureKey( pk(~sk_sign_trustee1)
+                                                     ) @ #k.1 )
                                                 case Mock_TrusteeElectionSetup
-                                                solve( TAS_Trustee_Trace( 'Trustee2', pk(~sk_sign_trustee2),
+                                                solve( TAS_Trustee_Trace( 'Trustee2',
+                                                                          pk(~sk_sign_trustee2),
                                                                           pk(~sk_encrypt_trustee2)
                                                        ) @ #j.8 )
                                                   case Mock_TrusteeElectionSetup
-                                                  solve( HonestSignatureKey( pk(~sk_sign_trustee2) ) @ #k.1 )
+                                                  solve( HonestSignatureKey( pk(~sk_sign_trustee2)
+                                                         ) @ #k.1 )
                                                     case Mock_TrusteeElectionSetup
                                                     solve( TAS_Trustee_Trace( 'Trustee1',
                                                                               pk(~sk_sign_trustee1),
@@ -174,7 +189,8 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                           <
                                                                                            'Trustee_EG_Cryptograms',
                                                                                            'Trustee2',
-                                                                                           'Trustee2'>,
+                                                                                           'Trustee2'
+                                                                                          >,
                                                                                           ~election_setup,
                                                                                           shuffle_order(shuffle_order(~ballot_order,
                                                                                                                       <
@@ -250,7 +266,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                   solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                             pk(~sk_sign_trustee2),
                                                                                             pk(~sk_encrypt_trustee2)
-                                                                         ) @ #j.8 )
+                                                                         ) @ #j.14 )
                                                                     case Mock_TrusteeElectionSetup
                                                                     solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                            ) @ #k.1 )
@@ -412,7 +428,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                   solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                                             pk(~sk_sign_trustee2),
                                                                                                                             pk(~sk_encrypt_trustee2)
-                                                                                                         ) @ #j.8 )
+                                                                                                         ) @ #j.12 )
                                                                                                     case Mock_TrusteeElectionSetup
                                                                                                     solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                                            ) @ #k.1 )
@@ -535,7 +551,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                               solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                         pk(~sk_sign_trustee1),
                                                                                                                                         pk(~sk_encrypt_trustee1)
-                                                                                                                     ) @ #j.8 )
+                                                                                                                     ) @ #j.9 )
                                                                                                                 case Mock_TrusteeElectionSetup
                                                                                                                 solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                        ) @ #k.1 )
@@ -555,7 +571,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                         solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                   pk(~sk_sign_trustee1),
                                                                                                                                                   pk(~sk_encrypt_trustee1)
-                                                                                                                               ) @ #j.8 )
+                                                                                                                               ) @ #j.12 )
                                                                                                                           case Mock_TrusteeElectionSetup
                                                                                                                           solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                  ) @ #k.1 )
@@ -593,7 +609,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                           solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                                     pk(~sk_sign_trustee1),
                                                                                                                                                                     pk(~sk_encrypt_trustee1)
-                                                                                                                                                 ) @ #j.8 )
+                                                                                                                                                 ) @ #j.9 )
                                                                                                                                             case Mock_TrusteeElectionSetup
                                                                                                                                             solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                                    ) @ #k.1 )
@@ -616,7 +632,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                     solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                                               pk(~sk_sign_trustee1),
                                                                                                                                                                               pk(~sk_encrypt_trustee1)
-                                                                                                                                                           ) @ #j.8 )
+                                                                                                                                                           ) @ #j.12 )
                                                                                                                                                       case Mock_TrusteeElectionSetup
                                                                                                                                                       solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                                              ) @ #k.1 )
@@ -699,7 +715,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                       solve( TAS_Trustee_Trace( 'Trustee0',
                                                                                                                                                                                                 pk(~sk_sign_tas),
                                                                                                                                                                                                 pk(~sk_encrypt_unused)
-                                                                                                                                                                             ) @ #j.8 )
+                                                                                                                                                                             ) @ #j.9 )
                                                                                                                                                                         case TrusteeMixing_TAS_Init
                                                                                                                                                                         solve( HonestSignatureKey( pk(~sk_sign_tas)
                                                                                                                                                                                ) @ #k.1 )
@@ -758,7 +774,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                             solve( TAS_Trustee_Trace( 'Trustee0',
                                                                                                                                                                                                       pk(~sk_sign_tas),
                                                                                                                                                                                                       pk(~sk_encrypt_unused)
-                                                                                                                                                                                   ) @ #j.8 )
+                                                                                                                                                                                   ) @ #j.9 )
                                                                                                                                                                               case TrusteeMixing_TAS_Init
                                                                                                                                                                               solve( HonestSignatureKey( pk(~sk_sign_tas)
                                                                                                                                                                                      ) @ #k.1 )
@@ -770,7 +786,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                   solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                                                                                                                             pk(~sk_sign_trustee2),
                                                                                                                                                                                                             pk(~sk_encrypt_trustee2)
-                                                                                                                                                                                         ) @ #j.8 )
+                                                                                                                                                                                         ) @ #j.9 )
                                                                                                                                                                                     case Mock_TrusteeElectionSetup
                                                                                                                                                                                     solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                                                                                                                            ) @ #k.1 )
@@ -852,7 +868,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                                   solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                                                                                             pk(~sk_sign_trustee1),
                                                                                                                                                                                                                             pk(~sk_encrypt_trustee1)
-                                                                                                                                                                                                         ) @ #j.8 )
+                                                                                                                                                                                                         ) @ #j.12 )
                                                                                                                                                                                                     case Mock_TrusteeElectionSetup
                                                                                                                                                                                                     solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                                                                                            ) @ #k.1 )
@@ -891,7 +907,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                                                     solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                                                                                                                                                               pk(~sk_sign_trustee2),
                                                                                                                                                                                                                                               pk(~sk_encrypt_trustee2)
-                                                                                                                                                                                                                           ) @ #j.8 )
+                                                                                                                                                                                                                           ) @ #j.9 )
                                                                                                                                                                                                                       case Mock_TrusteeElectionSetup
                                                                                                                                                                                                                       solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                                                                                                                                                              ) @ #k.1 )
@@ -1069,7 +1085,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                                                                                     solve( TAS_Trustee_Trace( 'Trustee2',
                                                                                                                                                                                                                                                                               pk(~sk_sign_trustee2),
                                                                                                                                                                                                                                                                               pk(~sk_encrypt_trustee2)
-                                                                                                                                                                                                                                                           ) @ #j.9 )
+                                                                                                                                                                                                                                                           ) @ #j.10 )
                                                                                                                                                                                                                                                       case Mock_TrusteeElectionSetup
                                                                                                                                                                                                                                                       solve( HonestSignatureKey( pk(~sk_sign_trustee2)
                                                                                                                                                                                                                                                              ) @ #k.1 )
@@ -1120,7 +1136,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                                                                                                 solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                                                                                                                                                           pk(~sk_sign_trustee1),
                                                                                                                                                                                                                                                                                           pk(~sk_encrypt_trustee1)
-                                                                                                                                                                                                                                                                       ) @ #j.10 )
+                                                                                                                                                                                                                                                                       ) @ #j.14 )
                                                                                                                                                                                                                                                                   case Mock_TrusteeElectionSetup
                                                                                                                                                                                                                                                                   solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                                                                                                                                                          ) @ #k.1 )
@@ -1227,7 +1243,7 @@ solve( !TAS_ElectionSetup_Complete( election_setup ) ▶₀ #i )
                                                                                                                                                                                                                                                                                           solve( TAS_Trustee_Trace( 'Trustee1',
                                                                                                                                                                                                                                                                                                                     pk(~sk_sign_trustee1),
                                                                                                                                                                                                                                                                                                                     pk(~sk_encrypt_trustee1)
-                                                                                                                                                                                                                                                                                                 ) @ #j.10 )
+                                                                                                                                                                                                                                                                                                 ) @ #j.11 )
                                                                                                                                                                                                                                                                                             case Mock_TrusteeElectionSetup
                                                                                                                                                                                                                                                                                             solve( HonestSignatureKey( pk(~sk_sign_trustee1)
                                                                                                                                                                                                                                                                                                    ) @ #k.1 )

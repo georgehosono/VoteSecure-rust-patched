@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 Free & Fair
+// Copyright 2025-26 Free & Fair
 // See LICENSE.md for details
 
 //! This file contains the implementation of the top-level (and only) actor for

@@ -20,7 +20,7 @@ Examples:
     python -m nxt.model.view_cli -e context                    # prints all contexts
     python -m nxt.model.view_cli -e outstanding                # prints all outstanding attacks
 
-Copyright (C) 2025 Free & Fair
+Copyright (C) 2025-26 Free & Fair
 """
 
 import argparse
@@ -87,11 +87,17 @@ def show_mitigation_view(args):
 
     if args.tree:
         if root is None:
-            print("Error: -r ROOT is required for mitigation tree view", file=sys.stderr)
+            print(
+                "Error: -r ROOT is required for mitigation tree view", file=sys.stderr
+            )
             sys.exit(1)
         print(views.mitigation_tree(threat_model, root))
     else:
-        print(views.mitigation_table(threat_model, root, abstract=args.abstract, include_oos=args.oos))
+        print(
+            views.mitigation_table(
+                threat_model, root, abstract=args.abstract, include_oos=args.oos
+            )
+        )
 
 
 def show_context_view(args):
@@ -133,32 +139,37 @@ Examples:
     )
 
     parser.add_argument(
-        "-t", "--tree",
+        "-t",
+        "--tree",
         action="store_true",
         help="Display data in tree format",
     )
 
     parser.add_argument(
-        "-e", "--entity",
+        "-e",
+        "--entity",
         choices=["property", "context", "mitigation", "attack", "outstanding"],
         required=True,
         help="Specify the entity to display",
     )
 
     parser.add_argument(
-        "-r", "--root",
+        "-r",
+        "--root",
         type=str,
         help="Specify the root entity by name or ID",
     )
 
     parser.add_argument(
-        "-o", "--oos",
+        "-o",
+        "--oos",
         action="store_true",
         help="Include 'Out of scope' mitigations (for mitigation and outstanding views)",
     )
 
     parser.add_argument(
-        "-a", "--abstract",
+        "-a",
+        "--abstract",
         action="store_true",
         help="Include mitigations inherited from attack patterns (for mitigation view)",
     )

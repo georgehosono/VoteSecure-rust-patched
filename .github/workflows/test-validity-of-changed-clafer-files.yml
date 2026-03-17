@@ -1,7 +1,7 @@
 # .github/workflows/test-validity-of-changed-clafer-files.yml
 # Author: Luke Myers, Daniel M. Zimmerman
 # Created: 2024-09-25
-# Modified: 2025-03-15
+# Modified: 2026-03-31
 
 name: Test Validity of Changed Clafer Files
 
@@ -19,7 +19,7 @@ jobs:
         matrix: ${{ steps.changed-files.outputs.all_changed_files }}
       steps:
         - name: Checkout
-          uses: actions/checkout@v4
+          uses: actions/checkout@v6
           with:
             fetch-depth: 0
         - name: Get changed files
@@ -41,10 +41,10 @@ jobs:
         clafer-file: ${{ fromJson(needs.build-matrix.outputs.matrix) }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_READ_ONLY_TOKEN_USERNAME }}
           password: ${{ secrets.DOCKER_READ_ONLY_TOKEN }}

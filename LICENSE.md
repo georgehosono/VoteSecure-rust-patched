@@ -1,6 +1,6 @@
 # License
 
-Copyright (C) 2024-25 Free & Fair
+Copyright (C) 2024-26 Free & Fair
 
 All code in this project is licensed under the Apache license, version 2.0, the text of which is reproduced below and the canonical version of which can be found at <https://www.apache.org/licenses/LICENSE-2.0>. All documentation artifacts in this project that are not directly attached to source code (e.g., the static version of the threat model, the "Refinements Among High-Level Models" paper, the various `README` files) are licensed under the Creative Commons Attribution-ShareAlike 4.0 International Public License, the text of which is reproduced below and the canonical version of which can be found at <https://creativecommons.org/licenses/by-sa/4.0>.
 

@@ -1,7 +1,7 @@
 # .github/workflows/verify-cryptol-docstrings.yml
 # Author: Daniel M. Zimmerman
 # Created: 2025-05-01
-# Modified: 2026-03-03
+# Modified: 2026-04-03
 
 # This action uses Cryptol project files to not only typecheck all the
 # Cryptol files in each project, but also to check all their docstrings
@@ -11,14 +11,15 @@
 name: Verify Cryptol Docstrings
 
 on:
-  # We run this for pushes to `main` and on manual workflow dispatch,
-  # but not on PRs, because it can use excessive resources and sometimes
-  # the caching doesn't work correctly. We also run it twice a week on
-  # `main` so that the cache for main doesn't disappear after GitHub's
-  # 7 day cache timeout.
-  push:
-    branches:
-      - 'main'
+  # We run this automatically only after the corresponding CI workflow
+  # succeeds on `main`. To test this before merge, set the repo
+  # variable `SLOW_CV_TEST_BRANCH` to your branch name. We also allow
+  # manual dispatch and schedule to keep caches warm.
+  workflow_run:
+    workflows:
+      - Test Validity of Cryptol Files
+    types:
+      - completed
 
   workflow_dispatch:
 
@@ -29,20 +30,29 @@ on:
 jobs:
   build-matrix:
     name: Generate Matrix of Cryptol Projects
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.head_branch == 'main' ||
+        github.event.workflow_run.head_branch == vars.SLOW_CV_TEST_BRANCH))
     runs-on: ubuntu-latest
     outputs:
       cryptol-project-dirs: ${{ steps.generate-matrix.outputs.cryptol-project-dirs }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref }}
 
       - name: Generate Matrix
         id: generate-matrix
         shell: bash
         run: |
           # Find all directories containing cryproject.toml files and
-          # convert to JSON array
-          dirs=$(find . -type f -name 'cryproject.toml' -exec dirname {} \; | xargs -0 -n1 printf "%s\n" | grep . | jq -R . | jq -s .)
+          # convert to JSON array using an end-to-end NUL-safe pipeline
+          dirs=$(find . -type f -name 'cryproject.toml' -print0 | xargs -0 -n1 dirname | grep . | jq -R . | jq -s .)
           # Set the output using multiline syntax
           echo "cryptol-project-dirs<<EOF" >> $GITHUB_OUTPUT
           echo "$dirs" >> $GITHUB_OUTPUT
@@ -52,7 +62,14 @@ jobs:
     name: Check Cryptol Project
     needs: build-matrix
     runs-on: ubuntu-latest
-    if: fromJson(needs.build-matrix.outputs.cryptol-project-dirs)[0] != null
+    if: >-
+      fromJson(needs.build-matrix.outputs.cryptol-project-dirs)[0] != null &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        (github.event.workflow_run.head_branch == 'main' ||
+         github.event.workflow_run.head_branch == vars.SLOW_CV_TEST_BRANCH)))
     strategy:
       fail-fast: false
       matrix:
@@ -82,7 +99,7 @@ jobs:
           mv gh_2.69.0_linux_amd64/bin/gh /usr/local/bin/
       # Next, check out the repository
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           # Here, we check out the submodules; we did not do that above, because
@@ -92,13 +109,13 @@ jobs:
       # to the main branch's cache (if any)
       - name: Load Cache
         id: load-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.CRYPTOL_CACHE }}
           key: ${{ env.CRYPTOL_CACHE_KEY }}
       # If the cache missed, try to load the main branch cache
       - name: Cache Fallback
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         if: steps.load-cache.outputs.cache-hit != 'true'
         with:
           path: ${{ env.CRYPTOL_CACHE }}
@@ -116,7 +133,7 @@ jobs:
       # step failed
       - name: Save Cache
         if: success() || failure()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ env.CRYPTOL_CACHE }}
           key: ${{ env.CRYPTOL_CACHE_KEY }}

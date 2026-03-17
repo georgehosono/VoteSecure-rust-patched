@@ -1,9 +1,9 @@
 # Isabelle/HOL Theories for E2E-VIV Cryptography
 
 @author Frank Zeyda</br>
-@copyright Free & Fair 2025</br>
+@copyright Free & Fair 2025-26</br>
 @version 0.1</br>
-@license <span style="color:red">**TODO**</span></br>
+@license <span style="color:red">Apache-2.0</span></br>
 
 ## Description
 
@@ -24,7 +24,7 @@ Browsing can be done without compilation of the `E2EVIV` session. Just start the
 
 ![image missing: screenshot illustrating heap selection](./images/Isabelle-2024-select-heap.png)
 
-Note that above can be circumvented by using the provided makefile with the target **openznp** (type `make openznp`). This starts `isabelle jedit` with suitable command-line options to (a) use the HOL-Algebra heap and (b) open the [ZNP.thy](E2EVIV/theories/ZNP.thy) theory.
+Note that the above can be circumvented by using the provided Makefile with the target **openznp** (type `make openznp`). This starts `isabelle jedit` with suitable command-line options to (a) use the HOL-Algebra heap and (b) open the [ZNP.thy](E2EVIV/theories/ZNP.thy) theory.
 
 Currently, the only theories available to study are:
 - [Preliminaries](./E2EVIV/theories/Preliminaries.thy) (Preliminary Concepts)
@@ -50,4 +50,4 @@ make session
 
 The first one (`make install`) adds the E2EVIV location to the search path for Isabelle components. It only needs to be executed once.
 
-After `make session` completes without errors, the Proof Document PDF ought be available under [E2EVIV/output/document.pdf](E2EVIV/output/document.pdf). A new Isabelle heap image **E2EVIV** that includes all E2E-VIV Cryptography theories is moreover created. Note that compilation of the E2EVIV session heap *is not* required just to browse and experiment with the [E2EVIV theories](E2EVIV/theories), as these can be opened an loaded dynamically from inside `isabelle jedit` as described above.
+After `make session` completes without errors, the Proof Document PDF ought be available under [E2EVIV/output/document.pdf](E2EVIV/output/document.pdf). A new Isabelle heap image **E2EVIV** that includes all E2E-VIV Cryptography theories is also created. Note that compilation of the E2EVIV session heap *is not* required just to browse and experiment with the [E2EVIV theories](E2EVIV/theories), as these can be opened and loaded dynamically from inside `isabelle jedit` as described above.

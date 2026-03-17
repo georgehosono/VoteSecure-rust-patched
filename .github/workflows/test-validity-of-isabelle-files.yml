@@ -1,7 +1,7 @@
 # File: .github/workflows/test-validity-of-isabelle-files.yml
 # Author: Frank Zeyda
 # Created: 2026-03-02
-# Modified: 2026-03-04
+# Modified: 2026-03-31
 
 name: Test Validity of Isabelle Files
 
@@ -13,6 +13,8 @@ on:
   push:
     branches:
       - 'main'
+    paths:
+      - 'models/cryptography/isabelle/**'
   workflow_dispatch:
 
 jobs:
@@ -25,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Show Isabelle version
         run: isabelle version
