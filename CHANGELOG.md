@@ -2,13 +2,13 @@
 
 This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.).
 
-## [Version 1.1.1](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_1_1) - TBD April 2026
+## [Version 1.1.1](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_1_1) - 10 April 2026
 
 - updated threat model and procedures to address security advisories [GHSA-v43c-fm6q-w8f8](https://github.com/FreeAndFair/VoteSecure/security/advisories/GHSA-v43c-fm6q-w8f8) and [GHSA-w7jj-jfcc-gf89](https://github.com/FreeAndFair/VoteSecure/security/advisories/GHSA-w7jj-jfcc-gf89)
 - removed the Cryptol compiler and all references thereto, as we were not actually using it to generate code
 - fixed a minor type inference issue that prevented the Cryptol model from working with current versions of Cryptol
 - added continuous integration for the Isabelle E2E-VIV session
-- reimplemented the browsable view of the threat model as a completely local HTML/JavaScript document with additional views, cross-linking, and many other quality-of-life enhancements; this is now part of each release, in addition to the PDF version of the threat model ([direct download link](https://github.com/FreeAndFair/TuskMobileVoting/releases/download/latest/threat-model.html))
+- reimplemented the browsable view of the threat model as a completely local HTML/JavaScript document with additional views, cross-linking, and many other quality-of-life enhancements; this is now part of each release, in addition to the PDF version of the threat model ([direct download link](https://github.com/FreeAndFair/VoteSecure/releases/download/latest/threat-model.html))
 - reimplemented CI/CD/CV orchestration across the repository
 - updated Tamarin proof scripts to support a minor change necessitated by Tamarin 1.12's modified handling of functions declared by builtins
 - fixed various spelling and typographical errors in the repository
