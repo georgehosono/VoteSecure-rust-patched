@@ -2,6 +2,11 @@
 
 This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.).
 
+## [Version 1.?](https://github.com/FreeAndFair/VoteSecure/releaes/tag/latest) - ?? May 2026
+
+- updated ballot submission protocol documentation to match implementationl details
+- fixed a formatting error in the CONOPS
+
 ## [Version 1.1.1](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_1_1) - 10 April 2026
 
 - updated threat model and procedures to address security advisories [GHSA-v43c-fm6q-w8f8](https://github.com/FreeAndFair/VoteSecure/security/advisories/GHSA-v43c-fm6q-w8f8) and [GHSA-w7jj-jfcc-gf89](https://github.com/FreeAndFair/VoteSecure/security/advisories/GHSA-w7jj-jfcc-gf89)

@@ -193,6 +193,6 @@ The trustee MEFs are concerned with the process of generating the key shares and
 
 ### To Learn More
 
-Tusk, Bradley. *Vote with Your Phone: Why Mobile Voting Is Our Final Shot at Saving Democracy*. Sourcebooks, 2024
-[Benaloh, Josh. "Simple verifiable elections." EVT 6 (2006): 5-5.](https://www.usenix.org/legacy/events/evt06/tech/full_papers/benaloh/benaloh.pdf)
-[*The Future of Voting: End-to-End Verifiable Internet Voting \- Specification and Feasibility Study*](https://www.usvotefoundation.org/E2E-VIV)
+- Tusk, Bradley. *Vote with Your Phone: Why Mobile Voting Is Our Final Shot at Saving Democracy*. Sourcebooks, 2024
+- [Benaloh, Josh. "Simple verifiable elections." EVT 6 (2006): 5-5.](https://www.usenix.org/legacy/events/evt06/tech/full_papers/benaloh/benaloh.pdf)
+- [*The Future of Voting: End-to-End Verifiable Internet Voting \- Specification and Feasibility Study*](https://www.usvotefoundation.org/E2E-VIV)

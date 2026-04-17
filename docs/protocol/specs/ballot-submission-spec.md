@@ -6,13 +6,12 @@ This subprotocol covers the process where the Voting Application sends the encry
 
 ### Ballot Preparation (Internal VA Process)
 
-Before sending the ballot, the Voting Application performs the necessary cryptographic operations internally. For each choice the voter made:
+Before sending the ballot, the Voting Application performs the necessary cryptographic operations internally:
 
-1. The application maps the choice to its corresponding plaintext representation (m) based on the Election Manifest.
-2. It generates a unique randomizer (r).
-3. It encrypts the plaintext using Naor-Yung with the Election Public Key (Y) and the randomizer (r) to produce the ciphertext pair (c1, c2, pi).
-4. These ciphertext pairs are collected, along with their associated contest identifiers, into a list structure representing the encrypted ballot.
-5. Finally, the application signs this entire list structure (*ballot_cryptogram*) using its session-specific signing key corresponding to the (*voter_verifying_key*) generated during authentication.
+1. The application maps the voter selections to a plaintext ballot encoding based on the ballot style.
+2. It generates the randomizers needed to encrypt the plaintext ballot.
+3. It encrypts the plaintext ballot using Naor-Yung with the Election Public Key (Y), producing a single `BallotCiphertext` (with proof).
+4. Finally, it signs the resulting ballot data (`SignedBallotMsgData`, below), using its session-specific signing key corresponding to the `voter_verifying_key` generated during authentication.
 
 ### Submit Signed Ballot Message
 
@@ -67,11 +66,9 @@ channel properties
 2. The `voter_pseudonym` and `voter_verifying_key` match a stored `AuthVoterMsg` from the EAS.
 3. The `ballot_style` is a valid ballot style for this election.
 4. The `ballot_style` matches the `AuthVoterMsg` from check #2.
-5. The list of `contest_id` in the `BallotCryptograms` in the `cryptogram_list` match the structure of the `ballot_style`.
-6. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
-7. All `pi` Naor-Yung proofs verify correctly for the entire `cryptogram_list` list of `BallotCryptogram`s.
-8. All `c1` and `c2` ciphertext components are encryptions for the public election key for the entire `cryptogram_list` list of `BallotCryptogram`s.
-9. The ciphertext does not already exist on the bulletin board.
+5. The `signature` is a valid signature over the serialized contents of the `data` field signed by the signing key corresponding to `voter_verifying_key`.
+6. The ciphertext has a valid Naor-Yung proof.
+7. The ciphertext does not already exist on the bulletin board.
 
 ### Ballot Submission Bulletin
 
