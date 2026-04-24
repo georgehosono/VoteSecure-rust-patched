@@ -5,15 +5,13 @@
 //! A cryptographic context instantiates a set of interdependent functionalities
 //! suitable for some application.
 
-use rand::rngs::OsRng;
-
 use crate::groups::P256Group;
 use crate::groups::Ristretto255Group;
 use crate::traits::groups::CryptographicGroup;
 use crate::traits::groups::GroupElement;
 use crate::traits::groups::GroupScalar;
 use crate::utils::hash::Hasher;
-use crate::utils::rng::Rng;
+use crate::utils::rng::{OsRng, Rng};
 use crate::utils::serialization::{FSer, VSer};
 use crate::utils::signatures::Ed25519;
 use crate::utils::signatures::SignatureScheme;

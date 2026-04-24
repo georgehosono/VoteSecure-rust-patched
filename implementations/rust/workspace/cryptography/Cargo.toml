@@ -1,6 +1,6 @@
 [package]
 name = "cryptography"
-version = "0.2.0"
+version = "0.2.1"
 license = "Apache-2.0"
 edition = "2024"
 
@@ -15,7 +15,12 @@ p256 = { version = "0.13.2", features = ["arithmetic", "std", "hash2curve"] }
 sha3 = "0.10"
 
 # rng
-rand = { version = "0.8", features = ["std"] }
+rand = { version = "0.10.1", features = ["std"] }
+# We need a compatibility binding for rand_core 0.6, because the elliptic curve
+# and signature crates use rand_core 0.6 traits; once their current release
+# candidate versions become releases, we can use those releases and eliminate
+# the compatibility binding.
+rand_core_06 = { package = "rand_core", version = "0.6.4", features = ["getrandom"] }
 
 # signatures
 ed25519-dalek = {version = "2.2.0", features=["rand_core"] }

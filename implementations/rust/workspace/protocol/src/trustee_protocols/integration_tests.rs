@@ -37,7 +37,7 @@ mod tests {
     use std::hash::{Hash, Hasher};
 
     // for generating random voter pseudonyms
-    use rand::distributions::{Alphanumeric, DistString};
+    use rand::distr::{Alphanumeric, SampleString};
 
     const MANIFEST: &str = "test_election_manifest";
 
@@ -519,7 +519,7 @@ mod tests {
             for (_ballot_style, ballots) in plaintext_ballots {
                 for ballot in ballots {
                     // Generate a pseudonym for the ballot.
-                    let voter_pseudonym = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+                    let voter_pseudonym = Alphanumeric.sample_string(&mut rand::rng(), 16);
 
                     // Encrypt the ballot.
                     match encrypt_ballot(

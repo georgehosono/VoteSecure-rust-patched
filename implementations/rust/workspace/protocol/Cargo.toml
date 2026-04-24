@@ -1,6 +1,7 @@
 [package]
 name = "votesecure-protocol-library"
-version = "0.1.1"
+version = "0.1.2"
+license = "Apache-2.0"
 edition = "2024"
 
 [dependencies]
@@ -9,7 +10,7 @@ vser_derive = { path = "../cryptography/macros/vser_derive" }
 custom_warning_macro = { path = "../macros/custom_warning_macro" }
 enum_dispatch = "0.3.13"
 ascent = "0.8"
-rand = "0.8"
+rand = "0.10.1"
 strum = { version = "0.26", features = ["derive"] }
 stateright = "0.31.0"
 sha3 = "0.10"

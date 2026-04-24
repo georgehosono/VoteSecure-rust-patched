@@ -4,12 +4,12 @@
 
 //! Random number generation
 
-use rand::rngs::OsRng;
+pub use rand_core_06::OsRng;
 
 /**
  * Marker trait to require a cryptographically secure random number generator.
  */
-pub trait CRng: rand::RngCore + rand::CryptoRng {}
+pub trait CRng: rand_core_06::RngCore + rand_core_06::CryptoRng {}
 
 /**
  * `OsRng` is a cryptographically secure random number generator.
@@ -31,6 +31,6 @@ pub trait Rng: CRng {
  */
 impl Rng for OsRng {
     fn rng() -> OsRng {
-        rand::rngs::OsRng
+        OsRng
     }
 }

@@ -184,7 +184,7 @@ impl VDeserializable for Signature {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::RngCore;
+    use rand_core_06::RngCore;
 
     #[test]
     fn test_signatures_context() {

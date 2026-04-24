@@ -150,7 +150,7 @@ pub(crate) mod stateright {
     use super::types::*;
     use crate::cryptography::CryptographicHash;
     use cryptography::context::Context;
-    use rand::Rng;
+    use rand::RngExt;
     use std::array;
     use std::fmt::Formatter;
     use std::marker::PhantomData;
@@ -243,7 +243,7 @@ pub(crate) mod stateright {
     /// Utility function used in stateright tests
     pub(crate) fn random_hash() -> CryptographicHash {
         let mut bytes = [0u8; 64];
-        rand::thread_rng().fill(&mut bytes);
+        rand::rng().fill(&mut bytes);
         bytes.into()
     }
 }

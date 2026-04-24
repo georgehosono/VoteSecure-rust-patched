@@ -17,7 +17,7 @@ use crate::utils::error::Error;
 use crate::utils::hash;
 use crate::utils::serialization::VSerializable;
 
-use rand::Rng;
+use rand::seq::SliceRandom;
 use sha3::Digest;
 use vser_derive::VSerializable as VSer;
 
@@ -854,11 +854,37 @@ pub struct Permutation {
     pub inverse: Vec<usize>,
 }
 
+/// Adapter to use a `rand_core_06::RngCore` where `rand` APIs expect `rand::TryRng`.
+/// This can be removed once we have upgraded our cryptographic dependencies.
+struct Core06AsRand<'a, R>(&'a mut R)
+where
+    R: rand_core_06::RngCore;
+
+impl<R> rand::TryRng for Core06AsRand<'_, R>
+where
+    R: rand_core_06::RngCore,
+{
+    type Error = core::convert::Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        Ok(self.0.next_u32())
+    }
+
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
+        Ok(self.0.next_u64())
+    }
+
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<(), Self::Error> {
+        self.0.fill_bytes(dst);
+        Ok(())
+    }
+}
+
 impl Permutation {
     /// Generate a random permutation and its inverse.
     ///
-    /// This function uses the [`SliceRandom`](https://rust-random.github.io/rand/rand/seq/trait.SliceRandom.html#tymethod.shuffle) trait generate the permutation, according
-    /// to which
+    /// This function uses the [`SliceRandom`](https://docs.rs/rand/latest/rand/seq/trait.SliceRandom.html#tymethod.shuffle)
+    /// trait to generate the permutation, according to which
     ///
     /// "The resulting permutation is picked uniformly from the set of all possible
     /// permutations."
@@ -867,9 +893,10 @@ impl Permutation {
     #[must_use]
     pub fn generate<C: Context>(size: usize) -> Self {
         let mut rng = C::get_rng();
-
         let mut permutation: Vec<usize> = (0..size).collect();
-        Self::shuffle::<C>(&mut permutation, &mut rng);
+
+        let mut rng_adapter = Core06AsRand(&mut rng);
+        permutation.shuffle(&mut rng_adapter);
 
         let mut inverse = vec![0usize; size];
 
@@ -880,14 +907,6 @@ impl Permutation {
         Self {
             permutation,
             inverse,
-        }
-    }
-
-    /// Shuffle the given integers in place using the Fisher-Yates algorithm.
-    fn shuffle<C: Context>(data: &mut [usize], rng: &mut C::Rng) {
-        for i in (1..data.len()).rev() {
-            let j = rng.r#gen_range(0..=i);
-            data.swap(i, j);
         }
     }
 

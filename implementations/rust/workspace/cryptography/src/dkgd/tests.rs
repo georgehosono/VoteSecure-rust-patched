@@ -93,7 +93,7 @@ fn test_dkgd<C: Context, const T: usize, const P: usize, const W: usize>() {
     });
     assert_eq!(verification_keys, verification_keys_2);
 
-    let mut rng = C::get_rng();
+    let mut rng = rand::rng();
     recipients.shuffle(&mut rng);
 
     let pk: &DkgPublicKey<C, T> = &recipients[0].1;
@@ -137,7 +137,7 @@ fn test_dkgd_non_t<C: Context, const T: usize, const P: usize, const W: usize>()
 
     let mut dfactors: [Vec<DecryptionFactor<C, P, W>>; P] =
         recipients.map(|r| r.0.decryption_factor(&encrypted, &vec![]).unwrap());
-    let mut rng = C::get_rng();
+    let mut rng = rand::rng();
     dfactors.shuffle(&mut rng);
 
     // using all participants, not just T of them

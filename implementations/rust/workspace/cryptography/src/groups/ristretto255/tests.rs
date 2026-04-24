@@ -15,8 +15,9 @@ use crate::utils::serialization::{VDeserializable, VSerializable};
 
 #[test]
 fn test_ristretto_scalar_from_u32() {
-    use rand::Rng;
-    let u: u32 = Ctx::get_rng().r#gen();
+    use rand_core_06::RngCore;
+
+    let u: u32 = Ctx::get_rng().next_u32();
 
     let _scalar: RistrettoScalar = u.into();
     let one: RistrettoScalar = 1u32.into();
@@ -199,11 +200,11 @@ fn test_ristretto_g_exp() {
 
 #[test]
 fn test_ristretto_encode_decode_30_bytes() {
-    use rand::Rng;
+    use rand_core_06::RngCore;
 
     let mut rng = Ctx::get_rng();
     let mut lhs = [0u8; 30];
-    rng.fill(&mut lhs[..]);
+    rng.fill_bytes(&mut lhs[..]);
 
     let element = Ristretto255Group::encode_30_bytes(&lhs).unwrap();
     let rhs = Ristretto255Group::decode_30_bytes(&element).unwrap();
@@ -213,14 +214,14 @@ fn test_ristretto_encode_decode_30_bytes() {
 
 #[test]
 fn test_ristretto_encode_decode_array() {
-    use rand::Rng;
+    use rand_core_06::RngCore;
 
     let mut rng = Ctx::get_rng();
 
     // Test with array of size 3
     let mut lhs: [[u8; 30]; 3] = [[0u8; 30]; 3];
     for plaintext in &mut lhs {
-        rng.fill(&mut plaintext[..]);
+        rng.fill_bytes(&mut plaintext[..]);
     }
 
     let elements = Ristretto255Group::encode_array(&lhs).unwrap();
