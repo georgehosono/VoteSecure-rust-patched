@@ -57,14 +57,17 @@ sequenceDiagram
 
     %% == Phase 2: Check Partial Decryptions, Post Decryptions ==
     TB->>T1: All partial decryption/proof messages
-    activate T1 # Activate T1 when it has all shares and check values
+    %% Activate T1 when it has all shares and check values
+    activate T1
     TB->>T2: All partial decryption/proof messages
-    activate T2 # Activate T2 when it has all shares and check values
+    %% Activate T2 when it has all shares and check values
+    activate T2
 
     Note over TB, Tn: Mirroring also occurs for T3 .. Tn-1
 
     TB->>Tn: All partial decryption/proof messages
-    activate Tn # Activate Tn when it has all shares and check values
+    %% Activate Tn when it has all shares and check values
+    activate Tn
 
     T1->>T1: Check the partial decryption proofs
     T1->>T1: Combine the partial decryptions

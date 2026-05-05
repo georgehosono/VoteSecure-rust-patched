@@ -49,14 +49,17 @@ sequenceDiagram
     %% == Phase 2: Election Public Key Generation ==
     Note over TB: All shares and check values are mirrored to the trustees' local boards
     TB->>T1: All shares and check values
-    activate T1 # Activate T1 when it has all shares and check values
+    %% Activate T1 when it has all shares and check values
+    activate T1
     TB->>T2: All shares and check values
-    activate T2 # Activate T2 when it has all shares and check values
+    %% Activate T2 when it has all shares and check values
+    activate T2
 
     Note over TB, Tn: Mirroring also occurs for T3 .. Tn-1
 
     TB->>Tn: All shares and check values
-    activate Tn # Activate Tn when it has all shares and check values
+    %% Activate Tn when it has all shares and check values
+    activate Tn
 
     %% T1 processes
     T1->>T1: Verify check values cv*_1 against pairwise shares ps*_1
@@ -88,17 +91,21 @@ sequenceDiagram
 
     Note over TB: All calculated public keys are mirrored to the trustees' local boards
     TB-->>T1: All calculated public keys
-    activate T1 # Activate T1 when it has all calculated public keys
+    %% Activate T1 when it has all calculated public keys
+    activate T1
     TB-->>T2: All calculated public keys
-    activate T2 # Activate T2 when it has all calculated public keys
+    %% Activate T2 when it has all calculated public keys
+    activate T2
 
     Note over TB, Tn: Mirroring also occurs for T3 .. Tn-1
 
-    activate TAS # Activate TAS to receive final key confirmations
+    %% Activate TAS to receive final key confirmations
+    activate TAS
     TB-->>TAS: All calculated public keys
 
     TB-->>Tn: All calculated public keys
-    activate Tn # Activate Tn when it has all calculated public keys
+    %% Activate Tn when it has all calculated public keys
+    activate Tn
 
     T1->>T1: Check that all calculated public keys are identical
     Note right of T1: On failure: abort protocol
@@ -112,11 +119,14 @@ sequenceDiagram
     TAS->>TAS: Check that all calculated public keys are identical
     Note right of TAS: On failure: abort protocol
 
-    deactivate T1 # T1 processing complete for DKG
+    %% T1 processing complete for DKG
+    deactivate T1
 
-    deactivate T2 # T2 processing complete for DKG
+    %% T2 processing complete for DKG
+    deactivate T2
 
-    deactivate Tn # Tn processing complete for DKG
+    %% Tn processing complete for DKG
+    deactivate Tn
 
     deactivate TB
     deactivate TAS

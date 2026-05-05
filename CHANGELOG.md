@@ -2,10 +2,11 @@
 
 This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.).
 
-## [Version 1.?](https://github.com/FreeAndFair/VoteSecure/releaes/tag/latest) - ?? May 2026
+## [Version 1.2](https://github.com/FreeAndFair/VoteSecure/releaes/tag/latest) - ?? May 2026
 
-- updated ballot submission protocol documentation to match implementationl details
+- updated ballot submission protocol documentation to match implementation details
 - fixed a formatting error in the CONOPS
+- fixed comment syntax issues in the Mermaid diagrams for the cryptographic protocols
 
 ## [Version 1.1.1](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_1_1) - 10 April 2026
 

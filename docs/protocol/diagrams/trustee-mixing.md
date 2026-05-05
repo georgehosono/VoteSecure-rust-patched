@@ -34,11 +34,13 @@ sequenceDiagram
         participant Tn
     end %% Air-Gapped Network Boundary
 
-        activate TAS # Activated by data import
+        %% Activated by data import
+        activate TAS
         EA_Storage->>TAS: Provide Naor-Yung Cryptograms on Media
         TAS->>TB: Post Naor-Yung Cryptograms List
         activate TB
-        deactivate TAS # TAS waits for mix result to be posted
+        %% TAS waits for mix result to be posted
+        deactivate TAS
 
         %% == Phase 0: Validate/Strip Cryptograms ==
         Note over TB, Tn: Cryptogram validation and stripping
