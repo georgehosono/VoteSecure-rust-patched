@@ -10,7 +10,7 @@ from . import attacks
 
 # Threat model version metadata (single source of truth for HTML and LaTeX)
 MODEL_VERSION = "1.2"
-MODEL_DATE = "March 2026"
+MODEL_DATE = "May 2026"
 
 # Build the complete threat model
 model = ThreatModel(

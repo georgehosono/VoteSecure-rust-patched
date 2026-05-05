@@ -2,8 +2,9 @@
 
 This change log lists changes to VoteSecure with each released version. It is not comprehensive (i.e., it does not include non-material changes like fixes for typographical errors, updates to the continuous integration scripts, etc.).
 
-## [Version 1.2](https://github.com/FreeAndFair/VoteSecure/releaes/tag/latest) - ?? May 2026
+## [Version 1.2](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_2) - 5 May 2026
 
+- updated Rust `rand` package to 0.10.1 to address [RUSTSEC-2026-0097](https://rustsec.org/advisories/RUSTSEC-2026-0097)
 - updated ballot submission protocol documentation to match implementation details
 - fixed a formatting error in the CONOPS
 - fixed comment syntax issues in the Mermaid diagrams for the cryptographic protocols
