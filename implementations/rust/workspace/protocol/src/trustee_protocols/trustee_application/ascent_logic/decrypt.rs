@@ -4,6 +4,7 @@
 
 //! Protocol decryption phase
 
+/// Ascent inference rules for the decryption phase.
 pub(crate) mod infer {
 
     ascent::ascent_source! { decrypt_infer:
@@ -152,11 +153,13 @@ mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::decrypt::infer::decrypt_infer);
         }
 
+        /// Create a fresh Ascent program for decryption inference tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
+    /// Ascent execution rules used by decryption Stateright tests.
     pub(crate) mod execute {
 
         ascent::ascent_source! { decrypt_execute:
@@ -174,10 +177,12 @@ mod stateright {
         }
     }
 
+    /// Helper stubs used by decryption execution tests.
     pub(crate) mod execute_functions {
         use crate::trustee_protocols::trustee_application::ascent_logic;
         use ascent_logic::types::*;
 
+        /// Deterministic partial decryptions hash stub.
         pub(crate) fn partial_decryptions_stub(
             trustee: usize,
             input: &CiphertextsHash,
@@ -188,6 +193,7 @@ mod stateright {
                 .collect()
         }
 
+        /// Deterministic plaintexts hash stub.
         pub(crate) fn plaintexts_stub(
             _trustee: usize,
             input: &PartialDecryptionsHashes,
@@ -208,21 +214,24 @@ mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::decrypt::stateright::execute::decrypt_execute);
         }
 
+        /// Create a fresh Ascent program for decryption execution tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
-    // stateright test harness
+    /// Stateright test harness
     struct Harness<C: Context, const W: usize, const T: usize, const P: usize> {
         phantom_c: PhantomData<C>,
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> Harness<C, W, T, P> {
+        /// Create a new decryption harness.
         pub(crate) fn new() -> Self {
             Self {
                 phantom_c: PhantomData,
             }
         }
+        /// Create the initial hash board for decryption model checking.
         pub(crate) fn get_bb() -> HashBoard<C, W, T, P> {
             let mut ret = ascent_logic::mix::stateright::Harness::get_bb();
 

@@ -12,7 +12,7 @@ use crate::bulletins::Bulletin;
 
 use crate::cryptography::{ElectionKey, RandomizersStruct};
 use crate::elections::{Ballot, BallotStyle, ElectionHash, VoterPseudonym};
-use crate::messages::{ProtocolMessage, SignedBallotMsg, TrackerMsg};
+use crate::messages::{ProtocolMsg, SignedBallotMsg, TrackerMsg};
 
 // Import cryptography library types directly
 
@@ -27,7 +27,7 @@ pub enum SubmissionInput {
     /// Starts the submission protocol with a ballot.
     Start(Ballot),
     /// A network message intended for this subprotocol.
-    NetworkMessage(ProtocolMessage),
+    NetworkMessage(ProtocolMsg),
     /// The bulletin data fetched from the PBB.
     PBBData(Bulletin),
 }
@@ -36,7 +36,7 @@ pub enum SubmissionInput {
 #[derive(Debug, Clone)]
 pub enum SubmissionOutput {
     /// A message that needs to be sent over the network.
-    SendMessage(ProtocolMessage),
+    SendMessage(ProtocolMsg),
     /// A request for the host to fetch a bulletin from the PBB using its tracker.
     FetchBulletin(String),
     /// The protocol has completed successfully.
@@ -49,7 +49,7 @@ pub enum SubmissionOutput {
 #[derive(Debug, Clone)]
 pub struct BallotSubmissionSuccess {
     pub tracker: String,
-    /// Randomizers used during encryption, stored for potential ballot checking
+    /// Randomizers used during encryption, stored for potential ballot checking.
     pub randomizers: RandomizersStruct,
 }
 
@@ -67,7 +67,7 @@ enum SubState {
 #[derive(Clone, Debug)]
 pub struct SubmissionActor {
     state: SubState,
-    // --- Injected State from TopLevelActor ---
+    // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     dbb_verifying_key: VerifyingKey,
     voter_pseudonym: VoterPseudonym,
@@ -84,6 +84,17 @@ pub struct SubmissionActor {
 
 impl SubmissionActor {
     /// Creates a new `SubmissionActor`.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_verifying_key` - The DBB's verifying key for validating response signatures.
+    /// * `voter_pseudonym` - The voter's pseudonym for ballot submission.
+    /// * `voter_verifying_key` - The voter's verifying key included with submitted ballots.
+    /// * `ballot_style` - The ballot style describing the contests and rankings.
+    /// * `election_public_key` - The election public key used to encrypt ballots.
+    ///
+    /// # Returns
+    /// A new `SubmissionActor` in the `ReadyToStart` state.
     pub fn new(
         election_hash: ElectionHash,
         dbb_verifying_key: VerifyingKey,
@@ -107,11 +118,17 @@ impl SubmissionActor {
     }
 
     /// Set the voter's signing key (should be called after authentication)
+    ///
+    /// # Arguments
+    /// * `signing_key` - The voter's signing key for signing ballot submission messages.
     pub fn set_voter_signing_key(&mut self, signing_key: SigningKey) {
         self.voter_signing_key = Some(signing_key);
     }
 
-    /// Initialize cryptographic components
+    /// Initialize cryptographic components.
+    ///
+    /// # Returns
+    /// `Ok(())` if cryptographic components are ready, or `Err(msg)` if initialization fails.
     pub fn initialize_crypto_components(&mut self) -> Result<(), String> {
         // In a real implementation, the signing key would be loaded from secure storage
         // For now, generate a key pair and ensure the verifying key matches
@@ -127,6 +144,12 @@ impl SubmissionActor {
     }
 
     /// Processes an input for the Ballot Submission subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// A `SubmissionOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: SubmissionInput) -> SubmissionOutput {
         // Initialize cryptography components if not already done
         if self.voter_signing_key.is_none()
@@ -184,12 +207,12 @@ impl SubmissionActor {
 
                 self.sent_ballot = Some(signed_ballot.clone());
                 self.state = SubState::AwaitingTracker;
-                SubmissionOutput::SendMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot))
+                SubmissionOutput::SendMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot))
             }
 
             (
                 SubState::AwaitingTracker,
-                SubmissionInput::NetworkMessage(ProtocolMessage::ReturnBallotTracker(tracker_msg)),
+                SubmissionInput::NetworkMessage(ProtocolMsg::ReturnBallotTracker(tracker_msg)),
             ) => {
                 // Perform Return Ballot Tracker Checks before proceeding
                 if let Err(error) = self.perform_return_ballot_tracker_checks(&tracker_msg) {

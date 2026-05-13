@@ -176,6 +176,7 @@ pub enum TrusteeOutput {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Trustee board message together with its derived Ascent summary.
 pub struct ProcessedTrusteeMsg {
     pub trustee_msg: TrusteeMsg,
     pub(crate) ascent_msg: AscentMsg,
@@ -290,6 +291,15 @@ impl TrusteeActor {
     /// when the trustee is `Idle` (has successfully completed
     /// some subprotocol), and the new `TrusteeActor` always
     /// starts in the `Idle` state.
+    ///
+    /// # Arguments
+    /// * `trustee_info` - Metadata identifying this trustee.
+    /// * `signing_key` - The trustee signing key used to sign outbound trustee messages.
+    /// * `encryption_key_pair` - The trustee encryption key pair used in cryptographic protocols.
+    /// * `checkpoint` - Optional checkpoint used to restore protocol state and processed board messages.
+    ///
+    /// # Returns
+    /// `Ok(actor)` if the actor is created successfully, or `Err(msg)` if checkpoint restoration fails.
     pub fn new(
         trustee_info: TrusteeInfo,
         signing_key: SigningKey,
@@ -348,6 +358,12 @@ impl TrusteeActor {
     }
 
     /// Handle an input to the trustee actor using enum_dispatch.
+    ///
+    /// # Arguments
+    /// * `input` - The trustee input to handle.
+    ///
+    /// # Returns
+    /// A tuple containing optional actor output and an optional outbound trustee message.
     pub fn handle_input(
         &mut self,
         input: TrusteeInput,

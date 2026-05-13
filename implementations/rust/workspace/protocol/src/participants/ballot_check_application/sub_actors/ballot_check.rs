@@ -11,8 +11,8 @@
 //! the sub-actor completes once the plaintext ballot is delivered to the
 //! protocol driver.
 #![allow(unused_imports)]
-// Currently ignored for code simplicity until performance data is analyzed.
-// @todo Consider boxing structs in large enum variants to improve performance.
+// TODO: consider boxing structs in large enum variants to improve performance
+// currently ignored for code simplicity until performance data is analyzed.
 #![allow(clippy::large_enum_variant)]
 
 use crate::cryptography::ballot_check_context;
@@ -29,7 +29,7 @@ use crate::cryptography::{SigningKey, VerifyingKey};
 
 use crate::elections::{Ballot, BallotTracker, CastOrNot, ElectionHash};
 
-use crate::messages::ProtocolMessage;
+use crate::messages::ProtocolMsg;
 use crate::messages::{CheckReqMsg, CheckReqMsgData};
 use crate::messages::{FwdRandomizerMsg, FwdRandomizerMsgData};
 use crate::messages::{RandomizerMsg, RandomizerMsgData};
@@ -44,108 +44,74 @@ use cryptography::utils::serialization::VSerializable;
 /// The set of inputs that the `BallotCheckActor` can process.
 #[derive(Debug, Clone)]
 pub enum BallotCheckInput {
-    /**
-     * Starts the checking protocol; from a the initial state, this
-     * results in a [`CheckReqMsg`] message being sent over the network.
-     */
+    /// Start the checking protocol.
+    ///
+    /// From the initial state this emits a [`CheckReqMsg`] over the network.
     Start,
 
-    /**
-     * A message that is expected to be received from the network.
-     *
-     * The BCA only receives messages from the Digital Ballot Box (DBB).
-     */
-    NetworkMessage(ProtocolMessage),
+    /// A message received from the network.
+    ///
+    /// The BCA only receives messages from the Digital Ballot Box (DBB).
+    NetworkMessage(ProtocolMsg),
 
-    /**
-     * The cast/not cast decision by the voter, and a list of bulletins
-     * that voter's pseudonym has posted to the bulletin board in the
-     * order in which they were posted.
-     */
+    /// The voter's cast/not-cast decision, and a list of bulletins that
+    /// voter's pseudonym has posted to the bulletin board in posting order.
     CastDecision(CastOrNot, Vec<Bulletin>),
 }
 
-/// The set of outputs that the `AuthenticationActor` can produce.
+/// The set of outputs that the `BallotCheckActor` can produce.
 #[derive(Debug, Clone)]
 pub enum BallotCheckOutput {
-    /**
-     * A message that needs to be sent over the network.
-     *
-     * The BCA only sends messages to the Digital Ballot Box (DBB).
-     */
-    SendMessage(ProtocolMessage),
+    /// A message that needs to be sent over the network.
+    ///
+    /// The BCA only sends messages to the Digital Ballot Box (DBB).
+    SendMessage(ProtocolMsg),
 
-    /**
-     * Plaintext ballot shown to the user for checking/verification purposes.
-     */
+    /// Plaintext ballot shown to the user for manual checking.
     PlaintextBallot(Ballot),
 
-    /**
-     * The protocol has succeeded (the voter either indicated they cast
-     * and we have verified that they cast in the set of bulletins we
-     * received, or indicated they did not cast and we have verified
-     * that they did not cast in the set of bulletins we received).
-     */
+    /// The protocol has succeeded.
     Success(),
 
-    /**
-     * The protocol has failed; the [`String`] argument described the error.
-     */
+    /// The protocol has failed; the payload contains the error reason.
     Failure(String),
 }
 
 /// The sub-states for the Ballot Checking protocol.
 #[derive(Debug, Copy, Clone, Default)]
 enum SubState {
-    /**
-     * We are sending a [`CheckReqMsg`] to the Digital Ballot Box (DBB)
-     * from this state once the protocol starts.
-     */
+    /// Initial state. On start, send a [`CheckReqMsg`] to the DBB.
     #[default]
     SendCheckRequest,
 
-    /**
-     * We are waiting for the DBB's [`FwdRandomizerMsg`] response containing
-     * the encrypted randomizers. With this, we decrypt the encrypted ballot
-     * and display its content to the user for subsequent manual checking.
-     */
+    /// Wait for DBB [`FwdRandomizerMsg`], then decrypt and display ballot
+    /// for manual checking.
     DecryptAndDisplayBallot,
 
-    /**
-     * We are waiting for the voter to indicate whether or not they
-     * cast the ballot that they checked, so we can evaluate the list
-     * of bulletin board entries for their pseudonym to determine if
-     * their decision is correctly reflected there.
-     *
-     * This step is optional in the sense that no further protocol
-     * communication with the DBB happens here; it is just a validation
-     * mechanism for bulletin board entries. It could be implemented by
-     * the ballot checking application outside of this actor model, or
-     * could be implemented as a separate standalone application to
-     * check the bulletin board against a cast/uncast ballot tracker.
-     */
+    /// Wait for the voter cast/not-cast decision, then validate it against
+    /// their previous bulletin board entries.
+    ///
+    /// This step is optional in the sense that no further protocol
+    /// communication with the DBB happens here; it is just a validation
+    /// mechanism for bulletin board entries. It could be implemented by
+    /// the ballot checking application outside of this actor model, or
+    /// could be implemented as a separate standalone application to
+    /// check the bulletin board against a cast/uncast ballot tracker.
     CheckBallotCastOrNotStatus,
 
-    /**
-     * Protocol execution completed.
-     *
-     * Note that we cannot restart the protocol because dynamically generated
-     * data such as the BCA encryption and signing keys cannot be reused.
-     * Instead, the top-level actor must restart the protocol after creating
-     * a new instance of [`BallotCheckActor`].
-     */
+    /// Protocol execution completed.
     Completed,
 }
 
-/// The actor for the Ballot Checking subprotocol.
 // @future By using Rust lifetimes, we could pass on state from the top-level
 // actor _by reference_ which saves memory and increases performance. This is,
 // however, not so critical here since individual BCA applications are not
-// expected to handle a large number of ballot-checking requests.
+// expected to handle a large number of ballot checking requests.
+/// The actor for the Ballot Checking subprotocol.
 #[derive(Clone, Debug)]
 pub struct BallotCheckActor {
     state: SubState,
-    // --- State injected from [`TopLevelActor`] ---
+    // --- State injected from [`BallotCheckApplicationActor`] ---
     election_hash: ElectionHash,
     election_public_key: ElectionKey,
     dbb_verifying_key: VerifyingKey,
@@ -164,6 +130,16 @@ pub struct BallotCheckActor {
 // Implementation of the [`BallotCheckActor`] behavior.
 impl BallotCheckActor {
     /// Creates a new sub-actor for ballot checking.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `election_public_key` - The election public key used to verify ballot encryption.
+    /// * `dbb_verifying_key` - The DBB's verifying key for verifying bulletin signatures.
+    /// * `ballot_tracker` - The ballot tracker identifying the submitted ballot.
+    /// * `ballot` - The encrypted ballot to verify.
+    ///
+    /// # Returns
+    /// A new `BallotCheckActor` ready to begin the checking subprotocol.
     pub fn new(
         election_hash: ElectionHash,
         election_public_key: ElectionKey,
@@ -171,9 +147,9 @@ impl BallotCheckActor {
         ballot_tracker: BallotTracker,
         ballot: SignedBallotMsg,
     ) -> Self {
-        // Note that the integrity of the ballot and its tracker is
-        // guaranteed by checks carried out by the BCA [`TopLevelActor`].
-        // So there is not need to verify the respective message here.
+        // Note that the integrity of the ballot and its tracker is guaranteed
+        // by checks carried out by the BCA [`BallotCheckApplicationActor`].
+        // So there is no need to verify the respective message here.
         // Hence, the below check does not need to be carried out here.
         // assert!(check_signed_ballot(&ballot_tracker, &ballot).is_ok());
 
@@ -184,7 +160,7 @@ impl BallotCheckActor {
         // Both VA and BCA use the same context for randomizer encryption/decryption
         let context = ballot_check_context(&election_hash, &bca_verifying_key);
 
-        // Create fresh BCA encrpytion key pair for each protocol run.
+        // Create fresh BCA encryption key pair for each protocol run.
         // This enables the VA to securely transmit the randomizers.
         let bca_enc_keypair = generate_encryption_keypair(context.as_bytes()).unwrap();
 
@@ -204,6 +180,12 @@ impl BallotCheckActor {
     }
 
     /// Processes an input for the Ballot Check subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// A `BallotCheckOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: BallotCheckInput) -> BallotCheckOutput {
         match (self.state, input) {
             (SubState::SendCheckRequest, BallotCheckInput::Start) => {
@@ -230,12 +212,12 @@ impl BallotCheckActor {
 
                 self.state = SubState::DecryptAndDisplayBallot;
 
-                BallotCheckOutput::SendMessage(ProtocolMessage::CheckReq(check_req_msg))
+                BallotCheckOutput::SendMessage(ProtocolMsg::CheckReq(check_req_msg))
             }
 
             (
                 SubState::DecryptAndDisplayBallot,
-                BallotCheckInput::NetworkMessage(ProtocolMessage::FwdRandomizer(msg)),
+                BallotCheckInput::NetworkMessage(ProtocolMsg::FwdRandomizer(msg)),
             ) => {
                 // Check integrity of the forward randomizer message.
                 if let Err(error) = self.check_fwd_randomizer_msg(&msg) {
@@ -363,13 +345,9 @@ impl BallotCheckActor {
         }
     }
 
-    /**************************************************/
-    /* Encrypted Randomizer Forwarding Message Checks */
-    /**************************************************/
+    // --- Encrypted Randomizer Forwarding Message Checks ---
 
-    /**
-     * Checks the forwarding message containing the encrypted randomizers.
-     */
+    /// Check forwarding message containing encrypted randomizers.
     fn check_fwd_randomizer_msg(&self, msg: &FwdRandomizerMsg) -> Result<(), String> {
         self.check_election_hash(&msg.data.election_hash)?;
         self.check_randomizer_msg(&msg.data.message)?;
@@ -377,10 +355,7 @@ impl BallotCheckActor {
         Ok(())
     }
 
-    /**
-     * Check #1: The election_hash is the hash of the election configuration
-     * item for the current election.
-     */
+    /// Check #1: message election hash matches the current election hash.
     fn check_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
             Err("election hash in message is incorrect".to_string())
@@ -389,10 +364,7 @@ impl BallotCheckActor {
         }
     }
 
-    /**
-     * Check #2: 2. The message is a valid Encrypted Randomizer Forwarding
-     * Message.
-     */
+    /// Check #2: embedded randomizer message is valid.
     fn check_randomizer_msg(&self, msg: &RandomizerMsg) -> Result<(), String> {
         self.check_randomizer_msg_election_hash(msg)?;
         self.check_randomizer_msg_check_request(msg)?;
@@ -402,22 +374,14 @@ impl BallotCheckActor {
         Ok(())
     }
 
-    /**
-     * Check #3: The signature is a valid signature by the digital ballot box
-     * signing key over the contents of this message.
-     */
+    /// Check #3: forwarding message signature verifies under DBB key.
     fn check_fwd_randomizer_msg_signature(&self, msg: &FwdRandomizerMsg) -> Result<(), String> {
         verify_signature(&msg.data.ser(), &msg.signature, &self.dbb_verifying_key)
     }
 
-    /***************************************/
-    /* Encrypted Randomizer Message Checks */
-    /***************************************/
+    // --- Encrypted Randomizer Message Checks ---
 
-    /**
-     * Check #1: The election_hash is the hash of the election configuration
-     * item for the current election.
-     */
+    /// Check #1: randomizer message election hash matches current election hash.
     fn check_randomizer_msg_election_hash(&self, msg: &RandomizerMsg) -> Result<(), String> {
         if msg.data.election_hash != self.election_hash {
             Err("election hash in randomizer message is incorrect".to_string())
@@ -426,13 +390,7 @@ impl BallotCheckActor {
         }
     }
 
-    /**
-     * Check #2: The message is a valid Ballot Check Request Message.
-     *
-     * @note Instead of checking the validity of the [`CheckReqMsg`] message,
-     * we merely verify that it is the same message that we initially sent
-     * to the DBB. Thus we assume the initial message to be _a priori_ valid.
-     */
+    /// Check #2: embedded ballot check request matches the one originally sent.
     fn check_randomizer_msg_check_request(&self, msg: &RandomizerMsg) -> Result<(), String> {
         if self.sent_check_req_msg.as_ref().unwrap() != &msg.data.message {
             Err("randomizer message contains check request that does not match the one that the BCA initially sent".to_string())
@@ -472,10 +430,7 @@ impl BallotCheckActor {
      * Note that this check is obsolete now, with a recent protocol change
      * to use use a single cryptogram for the ballot rather than a list. */
 
-    /**
-     * Check #5: The public_key matches the public_key in the Ballot Submission
-     * Bulletin corresponding to the tracker in the message.
-     */
+    /// Check #5: message public key matches ballot submission bulletin key.
     fn check_randomizer_msg_public_key(&self, msg: &RandomizerMsg) -> Result<(), String> {
         if msg.data.public_key != self.ballot.data.voter_verifying_key {
             Err("public signing key in the randomizer message does not match the voter's public key according to the ballot submission bulletin (tracker)".to_string())
@@ -484,10 +439,7 @@ impl BallotCheckActor {
         }
     }
 
-    /**
-     * Check #6: The signature is a valid signature over the contents of the
-     * message signed by the public_key.
-     */
+    /// Check #6: randomizer message signature verifies under included key.
     fn check_randomizer_msg_signature(&self, msg: &RandomizerMsg) -> Result<(), String> {
         verify_signature(&msg.data.ser(), &msg.signature, &msg.data.public_key)
     }

@@ -2,14 +2,20 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
-//! Root module for ascent protocol logic
+//! Root module for ascent protocol logic.
 
 #![allow(dead_code)]
+/// Ascent protocol submodule for decryption.
 pub mod decrypt;
+/// Ascent protocol submodule for distributed key generation.
 pub mod dkg;
+/// Ascent protocol message definitions.
 pub mod messages;
+/// Ascent protocol submodule for mixing.
 pub mod mix;
+/// Core Ascent protocol execution logic.
 pub mod protocol;
+/// Shared Ascent protocol utilities.
 pub mod utils;
 
 use crate::cryptography::CryptographicHash;
@@ -29,23 +35,36 @@ pub(crate) mod types {
     use super::AccumulatorSet;
     use super::CryptographicHash;
 
+    /// Configuration hash.
     pub(crate) type CfgHash = CryptographicHash;
+    /// Trustee shares hash.
     pub(crate) type TrusteeSharesHash = CryptographicHash;
+    /// Public key hash.
     pub(crate) type PublicKeyHash = CryptographicHash;
+    /// Ciphertexts hash.
     pub(crate) type CiphertextsHash = CryptographicHash;
+    /// Accumulator for trustee shares hashes.
     pub(crate) type SharesHashesAcc = AccumulatorSet<TrusteeSharesHash>;
+    /// Sequence of trustee shares hashes.
     pub(crate) type SharesHashes = Vec<TrusteeSharesHash>;
+    /// Sender identifier alias.
     pub(crate) type Sender = TrusteeIndex;
+    /// Trustee index (1-based in protocol logic).
     pub(crate) type TrusteeIndex = usize;
+    /// Trustee count.
     pub(crate) type TrusteeCount = usize;
+    /// Partial decryptions hash.
     pub(crate) type PartialDecryptionsHash = CryptographicHash;
+    /// Accumulator for partial decryptions hashes.
     pub(crate) type PartialDecryptionsHashesAcc = AccumulatorSet<PartialDecryptionsHash>;
+    /// Sequence of partial decryptions hashes.
     pub(crate) type PartialDecryptionsHashes = Vec<PartialDecryptionsHash>;
+    /// Plaintexts hash.
     pub(crate) type PlaintextsHash = CryptographicHash;
 }
 use types::*;
 
-/// Actions that a trustee can take during protocol execution
+/// Actions that a trustee can take during protocol execution.
 ///
 /// Action variants correspond to computations that a trustee
 /// must perform during the protocol. They are triggered
@@ -140,11 +159,12 @@ ascent::ascent_source! { prelude:
         configuration_valid(cfg_hash, _, _, _),
         if m1.get_cfg() != *cfg_hash;
 
-    // FIXME: this relation is used for stateright tests and should be
+    // FIXME: this relation is used for Stateright tests and should be
     // moved elsewhere
     relation active(TrusteeIndex);
 }
 
+/// Stateright model helpers and board abstractions used by Ascent tests.
 pub(crate) mod stateright {
     use super::messages::Message;
     use super::types::*;
@@ -156,6 +176,7 @@ pub(crate) mod stateright {
     use std::marker::PhantomData;
 
     #[derive(Clone, Hash, PartialEq)]
+    /// Hash-only board model for Stateright exploration.
     pub(crate) struct HashBoard<C: Context, const W: usize, const T: usize, const P: usize> {
         pub(crate) messages: Vec<Message>,
         pub(crate) cfg_hash: CfgHash,
@@ -166,6 +187,7 @@ pub(crate) mod stateright {
         phantom_c: PhantomData<C>,
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> HashBoard<C, W, T, P> {
+        /// Create a new hash-only board with initial configuration messages.
         pub(crate) fn new(cfg_hash: CfgHash) -> Self {
             let messages: [Message; P] =
                 array::from_fn(|i| Message::ConfigurationValid(cfg_hash, T, P, i + 1));
@@ -186,12 +208,14 @@ pub(crate) mod stateright {
             }
         }
 
+        /// Record a public-key message hash from `sender`.
         pub(crate) fn add_pk(&mut self, pk_hash: PublicKeyHash, sender: TrusteeIndex) {
             let message = Message::PublicKey(self.cfg_hash, pk_hash, sender + 1);
             self.pk_hash = pk_hash;
             self.messages.push(message);
         }
 
+        /// Record ballots hash and selected mixing trustees.
         pub(crate) fn add_ballots(
             &mut self,
             ballots_hash: CiphertextsHash,
@@ -204,6 +228,7 @@ pub(crate) mod stateright {
             self.messages.push(message);
         }
 
+        /// Record a mix hash and corresponding signatures in the model.
         pub(crate) fn add_mix(
             &mut self,
             input_hash: CiphertextsHash,
@@ -236,11 +261,11 @@ pub(crate) mod stateright {
         }
     }
 
-    /// Utility function used in stateright tests
+    /// Utility function used in Stateright tests.
     pub(crate) fn empty_hash() -> CryptographicHash {
         [0u8; 64].into()
     }
-    /// Utility function used in stateright tests
+    /// Utility function used in Stateright tests.
     pub(crate) fn random_hash() -> CryptographicHash {
         let mut bytes = [0u8; 64];
         rand::rng().fill(&mut bytes);

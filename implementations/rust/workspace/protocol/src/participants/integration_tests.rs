@@ -22,8 +22,7 @@ mod tests {
     }
 
     use crate::auth_service::{
-        AuthServiceMessage, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg,
-        TokenReturnMsg,
+        AuthServiceMsg, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
     };
     use crate::bulletins::Bulletin;
     use crate::cryptography::{
@@ -32,13 +31,13 @@ mod tests {
     use crate::elections::{
         Ballot, BallotStyle, CastOrNot, ElectionHash, VoterPseudonym, string_to_election_hash,
     };
-    use crate::messages::ProtocolMessage;
+    use crate::messages::ProtocolMsg;
     use crate::participants::ballot_check_application::sub_actors::ballot_check::{
         BallotCheckInput, BallotCheckOutput,
     };
     use crate::participants::ballot_check_application::top_level_actor::{
-        ActorInput as BCAInput, Command as BCACommand, SubprotocolInput as BCASubprotocolInput,
-        SubprotocolOutput as BCASubprotocolOutput, TopLevelActor as BCAActor,
+        ActorInput as BCAInput, BallotCheckApplicationActor as BCAActor, Command as BCACommand,
+        SubprotocolInput as BCASubprotocolInput, SubprotocolOutput as BCASubprotocolOutput,
     };
     use crate::participants::digital_ballot_box::{
         ActorInput as DBBInput, ActorOutput as DBBOutput, BulletinBoard, Command as DBBCommand,
@@ -50,8 +49,8 @@ mod tests {
     };
     use crate::participants::election_admin_server::top_level_actor::{
         ActorInput as EASInput, AuthReqId, Command as EASCommand,
-        SubprotocolInput as EASSubprotocolInput, SubprotocolOutput as EASSubprotocolOutput,
-        TopLevelActor as EASActor,
+        ElectionAdminServerActor as EASActor, SubprotocolInput as EASSubprotocolInput,
+        SubprotocolOutput as EASSubprotocolOutput,
     };
     use crate::participants::voting_application::sub_actors::authentication::{
         AuthenticationInput, AuthenticationOutput,
@@ -67,7 +66,7 @@ mod tests {
     };
     use crate::participants::voting_application::top_level_actor::{
         ActorInput as VAInput, Command as VACommand, SubprotocolInput as VASubprotocolInput,
-        SubprotocolOutput as VASubprotocolOutput, TopLevelActor as VAActor,
+        SubprotocolOutput as VASubprotocolOutput, VotingApplicationActor as VAActor,
     };
     use stateright::{Checker, Model, Property};
     use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -83,30 +82,30 @@ mod tests {
             .unwrap_or(1)
     }
 
-    /// Configuration parameters for the Stateright model
+    /// Configuration parameters for the Stateright model.
     #[derive(Clone, Debug)]
     struct ModelConfig {
-        /// Maximum number of concurrent voter sessions
+        /// Maximum number of concurrent voter sessions.
         max_concurrent_sessions: usize,
         /// Number of voters who must successfully cast a ballot (completion goal)
         num_voters_to_complete: usize,
-        /// Total number of voter IDs in the registration database
+        /// Total number of voter IDs in the registration database.
         num_registered_voters: usize,
-        /// Maximum total number of ballot checks across all voters
+        /// Maximum total number of ballot checks across all voters.
         max_total_checks: usize,
-        /// Maximum total number of resubmissions across all voters
+        /// Maximum total number of resubmissions across all voters.
         max_total_resubmissions: usize,
-        /// Maximum number of sessions that can be abandoned
+        /// Maximum number of sessions that can be abandoned.
         max_abandoned_sessions: usize,
-        /// Maximum number of authentication failures
+        /// Maximum number of authentication failures.
         max_auth_failures: usize,
-        /// Maximum number of eligibility failures
+        /// Maximum number of eligibility failures.
         max_eligibility_failures: usize,
         /// Maximum number of "already voted" attempts (sessions that try to vote after already voting)
         max_already_voted_attempts: usize,
     }
 
-    /// Unique ID for a voter session in the model
+    /// Unique ID for a voter session in the model.
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
     struct SessionId(usize);
 
@@ -127,32 +126,32 @@ mod tests {
         AuthorizationFailed,
     }
 
-    /// Messages that can be in a VA's inbox
+    /// Messages that can be in a VA's inbox.
     #[derive(Clone, Debug)]
     enum VAMessage {
         Command(VACommand),
         SubprotocolInput(VASubprotocolInput),
     }
 
-    /// Messages that can be in a BCA's inbox
+    /// Messages that can be in a BCA's inbox.
     #[derive(Clone, Debug)]
     enum BCAMessage {
         Command(BCACommand),
         SubprotocolInput(BCASubprotocolInput),
     }
 
-    /// Messages pending delivery to mock actors
+    /// Messages pending delivery to mock actors.
     #[derive(Clone, Debug)]
     struct PendingMessages {
-        /// Messages from VA/BCA that need to be delivered to EAS
-        /// Each session has its own FIFO queue to preserve message ordering within that session
-        to_eas: BTreeMap<SessionId, VecDeque<ProtocolMessage>>,
-        /// Messages from VA/BCA that need to be delivered to DBB
-        /// Each session has its own FIFO queue to preserve message ordering within that session
-        to_dbb: BTreeMap<SessionId, VecDeque<ProtocolMessage>>,
-        /// AuthService messages from EAS that need AS response
-        to_as_service: Vec<(AuthReqId, AuthServiceMessage)>,
-        /// Biographical info checks from EAS that need protocol driver decision
+        /// Messages from VA/BCA that need to be delivered to EAS;
+        /// each session has its own FIFO queue to preserve message ordering within that session.
+        to_eas: BTreeMap<SessionId, VecDeque<ProtocolMsg>>,
+        /// Messages from VA/BCA that need to be delivered to DBB;
+        /// each session has its own FIFO queue to preserve message ordering within that session.
+        to_dbb: BTreeMap<SessionId, VecDeque<ProtocolMsg>>,
+        /// AuthService messages from EAS that need AS response.
+        to_as_service: Vec<(AuthReqId, AuthServiceMsg)>,
+        /// Biographical info checks from EAS that need protocol driver decision.
         bio_info_checks: Vec<(AuthReqId, AuthServiceReportMsg)>,
     }
 
@@ -174,7 +173,7 @@ mod tests {
                 && self.bio_info_checks.is_empty()
         }
 
-        /// Check if there are any pending messages for a specific voter
+        /// Check if there are any pending messages for a specific voter.
         fn has_messages_for(
             &self,
             session_id: SessionId,
@@ -193,7 +192,7 @@ mod tests {
         }
     }
 
-    /// Mock Authentication Server - handles voter authentication only
+    /// Mock Authentication Server - handles voter authentication only.
     #[derive(Clone, Debug)]
     struct MockAS {
         next_session_id: u64,
@@ -209,8 +208,8 @@ mod tests {
             }
         }
 
-        /// Handle InitAuthReqMsg from EAS - create authentication session
-        /// The profile determines how this session will be authenticated
+        /// Handle InitAuthReqMsg from EAS - create authentication session;
+        /// the profile determines how this session will be authenticated.
         fn handle_init_auth_req(
             &mut self,
             _msg: InitAuthReqMsg,
@@ -230,8 +229,8 @@ mod tests {
             TokenReturnMsg { token, session_id }
         }
 
-        /// Handle AuthServiceQueryMsg from EAS - return authentication results
-        /// Returns authenticated=false for sessions with AuthenticationFailed profile
+        /// Handle AuthServiceQueryMsg from EAS - return authentication results;
+        /// returns authenticated=false for sessions with AuthenticationFailed profile.
         fn handle_query(&self, msg: AuthServiceQueryMsg) -> Result<AuthServiceReportMsg, String> {
             let session_data = self
                 .sessions
@@ -258,7 +257,7 @@ mod tests {
         }
     }
 
-    /// Which VA subprotocol is currently active
+    /// Which VA subprotocol is currently active.
     #[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
     enum VASubprotocolState {
         Idle,
@@ -268,7 +267,7 @@ mod tests {
         Checking,
     }
 
-    /// State for a single voter session
+    /// State for a single voter session.
     #[derive(Clone, Debug)]
     struct VoterSessionState {
         /// The VA actor for this voter
@@ -277,61 +276,61 @@ mod tests {
         /// Optional BCA actor (created when voter checks ballot)
         bca: Option<BCAActor>,
 
-        /// VA's message inbox
+        /// VA's message inbox.
         va_inbox: Vec<VAMessage>,
 
-        /// BCA's message inbox
+        /// BCA's message inbox.
         bca_inbox: Vec<BCAMessage>,
 
-        /// Predetermined profile determining this session's execution path
+        /// Predetermined profile determining this session's execution path.
         profile: SessionProfile,
 
         /// Which registered voter ID this session was assigned (after authorization)
         assigned_voter_id: Option<usize>,
 
-        /// Number of times this voter has checked their ballot
+        /// Number of times this voter has checked their ballot.
         check_count: usize,
 
-        /// Number of times this voter has resubmitted
+        /// Number of times this voter has resubmitted.
         resubmission_count: usize,
 
-        /// Whether this voter has successfully cast
+        /// Whether this voter has successfully cast.
         has_cast: bool,
 
-        /// Whether this session was abandoned
+        /// Whether this session was abandoned.
         is_abandoned: bool,
 
-        /// Whether authentication failed for this session
+        /// Whether authentication failed for this session.
         auth_failed: bool,
 
-        /// Whether eligibility check failed for this session
+        /// Whether eligibility check failed for this session.
         eligibility_failed: bool,
 
-        /// Whether submission failed because voter already voted
+        /// Whether submission failed because voter already voted.
         already_voted_failure: bool,
 
-        /// Whether submission failed due to missing authorization
+        /// Whether submission failed due to missing authorization.
         unauthorized_submission_failure: bool,
 
-        /// Whether submission failed for other reasons
+        /// Whether submission failed for other reasons.
         other_failure: bool,
 
         /// Whether casting failed
         casting_failure: bool,
 
-        /// Whether check approval is pending from user
+        /// Whether check approval is pending from user.
         check_approval_pending: bool,
 
-        /// Whether third-party auth completion is pending from user
+        /// Whether third-party auth completion is pending from user.
         third_party_auth_pending: bool,
 
-        /// Track which VA subprotocol is active for proper state hashing
+        /// Track which VA subprotocol is active for proper state hashing.
         va_subprotocol_state: VASubprotocolState,
 
         /// Unique ID for this VA actor (incremented globally)
         _va_id: u64,
 
-        /// Running hash of all inputs processed by this VA
+        /// Running hash of all inputs processed by this VA.
         va_trace_hash: u64,
 
         /// Optional unique ID for BCA actor (when created)
@@ -340,7 +339,7 @@ mod tests {
         /// Running hash of all inputs processed by BCA (when it exists)
         bca_trace_hash: u64,
 
-        /// Whether BCA has returned PlaintextBallot and is awaiting CastDecision
+        /// Whether BCA has returned PlaintextBallot and is awaiting CastDecision.
         bca_awaiting_cast_decision: bool,
 
         /// Whether the current ballot was confirmed as NotCast (prevents casting, must resubmit)
@@ -378,7 +377,7 @@ mod tests {
             }
         }
 
-        /// Check if this session is in a terminal state
+        /// Check if this session is in a terminal state.
         fn is_terminal(&self) -> bool {
             let terminal = self.has_cast
                 || self.is_abandoned
@@ -402,7 +401,7 @@ mod tests {
         }
     }
 
-    /// Global state for the Stateright model
+    /// Global state for the Stateright model.
     #[derive(Clone, Debug)]
     struct IntegrationState {
         config: ModelConfig,
@@ -463,7 +462,7 @@ mod tests {
         next_actor_id: u64,
     }
 
-    /// Implement Hash for IntegrationState
+    /// Implement Hash for IntegrationState.
     impl Hash for IntegrationState {
         fn hash<H: Hasher>(&self, state: &mut H) {
             // Hash configuration
@@ -776,27 +775,27 @@ mod tests {
     }
 
     impl IntegrationState {
-        /// Helper to hash a ProtocolMessage by its variant
-        fn hash_protocol_message<H: std::hash::Hasher>(msg: &ProtocolMessage, state: &mut H) {
+        /// Helper to hash a ProtocolMsg by its variant.
+        fn hash_protocol_message<H: std::hash::Hasher>(msg: &ProtocolMsg, state: &mut H) {
             std::mem::discriminant(msg).hash(state);
         }
 
-        /// Helper to get an orderable value for a ProtocolMessage variant
+        /// Helper to get an orderable value for a ProtocolMsg variant.
         #[allow(dead_code)]
-        fn message_variant_order(msg: &ProtocolMessage) -> u8 {
+        fn message_variant_order(msg: &ProtocolMsg) -> u8 {
             match msg {
-                ProtocolMessage::AuthReq(_) => 0,
-                ProtocolMessage::AuthFinish(_) => 1,
-                ProtocolMessage::SubmitSignedBallot(_) => 2,
-                ProtocolMessage::CastReq(_) => 3,
-                ProtocolMessage::CheckReq(_) => 4,
-                ProtocolMessage::Randomizer(_) => 5,
+                ProtocolMsg::AuthReq(_) => 0,
+                ProtocolMsg::AuthFinish(_) => 1,
+                ProtocolMsg::SubmitSignedBallot(_) => 2,
+                ProtocolMsg::CastReq(_) => 3,
+                ProtocolMsg::CheckReq(_) => 4,
+                ProtocolMsg::Randomizer(_) => 5,
                 _ => 255,
             }
         }
 
-        /// Helper to compare ProtocolMessages by their variant
-        fn protocol_messages_eq(a: &ProtocolMessage, b: &ProtocolMessage) -> bool {
+        /// Helper to compare ProtocolMsgs by their variant.
+        fn protocol_messages_eq(a: &ProtocolMsg, b: &ProtocolMsg) -> bool {
             std::mem::discriminant(a) == std::mem::discriminant(b)
         }
 
@@ -944,7 +943,7 @@ mod tests {
             }
         }
 
-        /// Handle VA processing its next inbox message
+        /// Handle VA processing its next inbox message.
         fn handle_va_step(state: &mut IntegrationState, session_id: SessionId) -> Option<()> {
             let session = &mut state.voter_sessions.get_mut(&session_id).unwrap();
 
@@ -1017,7 +1016,7 @@ mod tests {
             Some(())
         }
 
-        /// Handle BCA processing its next inbox message
+        /// Handle BCA processing its next inbox message.
         fn handle_bca_step(state: &mut IntegrationState, session_id: SessionId) -> Option<()> {
             let session = &mut state.voter_sessions.get_mut(&session_id).unwrap();
 
@@ -1056,7 +1055,7 @@ mod tests {
             Some(())
         }
 
-        /// Route BCA output to appropriate destinations
+        /// Route BCA output to appropriate destinations.
         fn route_bca_output(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -1099,7 +1098,7 @@ mod tests {
             }
         }
 
-        /// Route VA output to appropriate destinations
+        /// Route VA output to appropriate destinations.
         fn route_va_output(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -1117,7 +1116,7 @@ mod tests {
                     match auth_output {
                         AuthenticationOutput::SendMessage(msg) => {
                             match &msg {
-                                ProtocolMessage::AuthReq(_) | ProtocolMessage::AuthFinish(_) => {
+                                ProtocolMsg::AuthReq(_) | ProtocolMsg::AuthFinish(_) => {
                                     // Both AuthReq and AuthFinish go to EAS
                                     state
                                         .pending_messages
@@ -1399,7 +1398,7 @@ mod tests {
             }
         }
 
-        /// EAS processes AuthReq message from VA
+        /// EAS processes AuthReq message from VA.
         fn handle_eas_process_auth_req(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -1424,7 +1423,7 @@ mod tests {
 
             // Extract AuthReq
             let auth_req = match msg {
-                ProtocolMessage::AuthReq(req) => req,
+                ProtocolMsg::AuthReq(req) => req,
                 _ => return None,
             };
 
@@ -1483,7 +1482,7 @@ mod tests {
             Some(())
         }
 
-        /// EAS processes AuthFinish message from VA
+        /// EAS processes AuthFinish message from VA.
         fn handle_eas_process_auth_finish(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -1508,7 +1507,7 @@ mod tests {
 
             // Extract AuthFinish
             let auth_finish = match msg {
-                ProtocolMessage::AuthFinish(finish) => finish,
+                ProtocolMsg::AuthFinish(finish) => finish,
                 _ => return None,
             };
 
@@ -1518,7 +1517,7 @@ mod tests {
             // Send to EAS actor
             let eas_input = EASInput::SubprotocolInput(
                 EASSubprotocolInput::VoterAuthentication(VoterAuthenticationInput::NetworkMessage(
-                    ProtocolMessage::AuthFinish(auth_finish),
+                    ProtocolMsg::AuthFinish(auth_finish),
                 )),
                 auth_req_id,
             );
@@ -1569,7 +1568,7 @@ mod tests {
             Some(())
         }
 
-        /// AS returns successful authentication result
+        /// AS returns successful authentication result.
         fn handle_as_return_auth_success(
             state: &mut IntegrationState,
             auth_req_id: AuthReqId,
@@ -1591,15 +1590,15 @@ mod tests {
 
             // Process AS message based on type
             let as_response = match as_msg {
-                AuthServiceMessage::InitAuthReq(init_msg) => {
+                AuthServiceMsg::InitAuthReq(init_msg) => {
                     // AS creates authentication session with the voter's profile
                     let token_return = state.as_server.handle_init_auth_req(init_msg, profile);
-                    AuthServiceMessage::TokenReturn(token_return)
+                    AuthServiceMsg::TokenReturn(token_return)
                 }
-                AuthServiceMessage::AuthServiceQuery(query_msg) => {
+                AuthServiceMsg::AuthServiceQuery(query_msg) => {
                     // AS returns authentication result (successful)
                     let report = state.as_server.handle_query(query_msg).ok()?;
-                    AuthServiceMessage::AuthServiceReport(report)
+                    AuthServiceMsg::AuthServiceReport(report)
                 }
                 _ => return None,
             };
@@ -1663,8 +1662,8 @@ mod tests {
             Some(())
         }
 
-        /// AS returns failed authentication result
-        /// Routes the AS message through MockAS, which will return authenticated=false
+        /// AS returns failed authentication result;
+        /// routes the AS message through MockAS, which will return authenticated=false.
         fn handle_as_return_auth_failure(
             state: &mut IntegrationState,
             auth_req_id: AuthReqId,
@@ -1685,15 +1684,15 @@ mod tests {
 
             // Process AS message based on type - MockAS will return authenticated=false for AuthenticationFailed profile
             let as_response = match as_msg {
-                AuthServiceMessage::InitAuthReq(init_msg) => {
+                AuthServiceMsg::InitAuthReq(init_msg) => {
                     // AS creates authentication session with the voter's profile
                     let token_return = state.as_server.handle_init_auth_req(init_msg, profile);
-                    AuthServiceMessage::TokenReturn(token_return)
+                    AuthServiceMsg::TokenReturn(token_return)
                 }
-                AuthServiceMessage::AuthServiceQuery(query_msg) => {
+                AuthServiceMsg::AuthServiceQuery(query_msg) => {
                     // AS returns authentication result (will be authenticated=false for this profile)
                     let report = state.as_server.handle_query(query_msg).ok()?;
-                    AuthServiceMessage::AuthServiceReport(report)
+                    AuthServiceMsg::AuthServiceReport(report)
                 }
                 _ => return None,
             };
@@ -1745,7 +1744,7 @@ mod tests {
             Some(())
         }
 
-        /// Calculate ballot style from registered voter ID
+        /// Calculate ballot style from registered voter ID.
         ///
         /// This function ensures consistent ballot style assignment across the system.
         /// The ballot style determines which contests the voter is eligible to vote in.
@@ -1753,7 +1752,7 @@ mod tests {
             ((registered_id % 3) + 1) as BallotStyle
         }
 
-        /// Protocol Driver approves biographical info
+        /// Protocol Driver approves biographical info.
         fn handle_protocol_driver_approve_bio(
             state: &mut IntegrationState,
             auth_req_id: AuthReqId,
@@ -1795,7 +1794,7 @@ mod tests {
                         if let Some(session) = state.voter_sessions.get_mut(&session_id) {
                             for msg in msgs {
                                 match &msg {
-                                    ProtocolMessage::ConfirmAuthorization(_) => {
+                                    ProtocolMsg::ConfirmAuthorization(_) => {
                                         // Send to VA
                                         session.va_inbox.push(VAMessage::SubprotocolInput(
                                             VASubprotocolInput::Authentication(
@@ -1803,7 +1802,7 @@ mod tests {
                                             ),
                                         ));
                                     }
-                                    ProtocolMessage::AuthVoter(auth_voter_msg) => {
+                                    ProtocolMsg::AuthVoter(auth_voter_msg) => {
                                         // Send to DBB using EASMessage
                                         state
                                             .dbb
@@ -1845,7 +1844,7 @@ mod tests {
             Some(())
         }
 
-        /// Protocol Driver rejects biographical info
+        /// Protocol Driver rejects biographical info.
         fn handle_protocol_driver_reject_bio(
             state: &mut IntegrationState,
             auth_req_id: AuthReqId,
@@ -1880,7 +1879,7 @@ mod tests {
                         // Skip if session was abandoned/removed
                         if let Some(session) = state.voter_sessions.get_mut(&session_id) {
                             for msg in msgs {
-                                if let ProtocolMessage::ConfirmAuthorization(_) = &msg {
+                                if let ProtocolMsg::ConfirmAuthorization(_) = &msg {
                                     session.va_inbox.push(VAMessage::SubprotocolInput(
                                         VASubprotocolInput::Authentication(
                                             AuthenticationInput::NetworkMessage(msg),
@@ -1934,7 +1933,7 @@ mod tests {
             Some(())
         }
 
-        /// DBB processes SignedBallotMsg and returns tracker
+        /// DBB processes SignedBallotMsg and returns tracker.
         fn handle_dbb_process_signed_ballot(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -1959,7 +1958,7 @@ mod tests {
 
             // Extract SignedBallotMsg
             let signed_ballot = match msg {
-                ProtocolMessage::SubmitSignedBallot(ballot) => ballot,
+                ProtocolMsg::SubmitSignedBallot(ballot) => ballot,
                 _ => return None,
             };
 
@@ -1978,13 +1977,13 @@ mod tests {
                 .dbb
                 .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                     connection_id,
-                    message: ProtocolMessage::SubmitSignedBallot(signed_ballot.clone()),
+                    message: ProtocolMsg::SubmitSignedBallot(signed_ballot.clone()),
                 }));
 
             let tracker_msg = match output {
                 Ok(DBBOutput::OutgoingMessage(outgoing)) => {
                     match outgoing.message {
-                        ProtocolMessage::ReturnBallotTracker(tracker) => {
+                        ProtocolMsg::ReturnBallotTracker(tracker) => {
                             state.trackers_assigned += 1;
                             tracker
                         }
@@ -2009,7 +2008,7 @@ mod tests {
                 session
                     .va_inbox
                     .push(VAMessage::SubprotocolInput(VASubprotocolInput::Submission(
-                        SubmissionInput::NetworkMessage(ProtocolMessage::ReturnBallotTracker(
+                        SubmissionInput::NetworkMessage(ProtocolMsg::ReturnBallotTracker(
                             tracker_msg,
                         )),
                     )));
@@ -2018,7 +2017,7 @@ mod tests {
             Some(())
         }
 
-        /// DBB processes CastReqMsg and returns confirmation
+        /// DBB processes CastReqMsg and returns confirmation.
         fn handle_dbb_process_cast_req(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -2043,7 +2042,7 @@ mod tests {
 
             // Extract CastReqMsg
             let cast_req = match msg {
-                ProtocolMessage::CastReq(req) => req,
+                ProtocolMsg::CastReq(req) => req,
                 _ => return None,
             };
 
@@ -2064,13 +2063,13 @@ mod tests {
                         .dbb
                         .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                             connection_id,
-                            message: ProtocolMessage::CastReq(cast_req.clone()),
+                            message: ProtocolMsg::CastReq(cast_req.clone()),
                         }));
 
                 let cast_conf = match output {
                     Ok(DBBOutput::OutgoingMessage(outgoing)) => {
                         match outgoing.message {
-                            ProtocolMessage::CastConf(conf) => {
+                            ProtocolMsg::CastConf(conf) => {
                                 trace_print(format!(
                                     "DBB: CastReq SUCCESS for {:?} with tracker {:?}",
                                     session_id, tracker
@@ -2099,14 +2098,14 @@ mod tests {
                 session
                     .va_inbox
                     .push(VAMessage::SubprotocolInput(VASubprotocolInput::Casting(
-                        CastingInput::NetworkMessage(ProtocolMessage::CastConf(cast_conf)),
+                        CastingInput::NetworkMessage(ProtocolMsg::CastConf(cast_conf)),
                     )));
             }
 
             Some(())
         }
 
-        /// DBB processes CheckReqMsg and forwards to VA
+        /// DBB processes CheckReqMsg and forwards to VA.
         fn handle_dbb_process_check_req(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -2131,7 +2130,7 @@ mod tests {
 
             // Extract CheckReqMsg
             let check_req = match msg {
-                ProtocolMessage::CheckReq(req) => req,
+                ProtocolMsg::CheckReq(req) => req,
                 _ => return None,
             };
 
@@ -2144,7 +2143,7 @@ mod tests {
                 .dbb
                 .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                     connection_id: bca_connection_id,
-                    message: ProtocolMessage::CheckReq(check_req.clone()),
+                    message: ProtocolMsg::CheckReq(check_req.clone()),
                 }))
                 .ok()?;
 
@@ -2178,7 +2177,7 @@ mod tests {
             // Extract FwdCheckReq from output
             let fwd_check_req = match provide_output {
                 DBBOutput::OutgoingMessage(outgoing) => match outgoing.message {
-                    ProtocolMessage::FwdCheckReq(fwd) => fwd,
+                    ProtocolMsg::FwdCheckReq(fwd) => fwd,
                     _ => return None,
                 },
                 _ => return None,
@@ -2190,14 +2189,14 @@ mod tests {
                 session
                     .va_inbox
                     .push(VAMessage::SubprotocolInput(VASubprotocolInput::Checking(
-                        CheckingInput::NetworkMessage(ProtocolMessage::FwdCheckReq(fwd_check_req)),
+                        CheckingInput::NetworkMessage(ProtocolMsg::FwdCheckReq(fwd_check_req)),
                     )));
             }
 
             Some(())
         }
 
-        /// DBB processes RandomizerMsg and forwards to BCA
+        /// DBB processes RandomizerMsg and forwards to BCA.
         fn handle_dbb_process_randomizer(
             state: &mut IntegrationState,
             session_id: SessionId,
@@ -2222,7 +2221,7 @@ mod tests {
 
             // Extract RandomizerMsg
             let randomizer = match msg {
-                ProtocolMessage::Randomizer(rand) => rand,
+                ProtocolMsg::Randomizer(rand) => rand,
                 _ => return None,
             };
 
@@ -2236,14 +2235,14 @@ mod tests {
                 .dbb
                 .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                     connection_id: bca_checking_session_id,
-                    message: ProtocolMessage::Randomizer(randomizer),
+                    message: ProtocolMsg::Randomizer(randomizer),
                 }))
                 .ok()?;
 
             // Extract FwdRandomizer from output
             let fwd_randomizer = match output {
                 DBBOutput::OutgoingMessage(outgoing) => match outgoing.message {
-                    ProtocolMessage::FwdRandomizer(fwd) => fwd,
+                    ProtocolMsg::FwdRandomizer(fwd) => fwd,
                     _ => return None,
                 },
                 _ => return None,
@@ -2256,7 +2255,7 @@ mod tests {
             {
                 session.bca_inbox.push(BCAMessage::SubprotocolInput(
                     BCASubprotocolInput::BallotCheck(BallotCheckInput::NetworkMessage(
-                        ProtocolMessage::FwdRandomizer(fwd_randomizer),
+                        ProtocolMsg::FwdRandomizer(fwd_randomizer),
                     )),
                 ));
             }
@@ -2265,11 +2264,11 @@ mod tests {
         }
     }
 
-    /// Actions that can be taken in the model
+    /// Actions that can be taken in the model.
     #[derive(Clone, Debug, PartialEq, Eq, Hash)]
     enum Action {
         // --- Session management ---
-        /// Start a new voter session with a predetermined profile
+        /// Start a new voter session with a predetermined profile.
         StartNewSession(SessionProfile),
 
         // --- Independent action processing ---
@@ -2281,7 +2280,7 @@ mod tests {
         // --- User commands (queue commands in VA inbox) ---
         /// User starts authentication
         UserStartAuth(SessionId),
-        /// User completes third-party authentication
+        /// User completes third-party authentication.
         UserFinishAuth(SessionId),
         /// User starts ballot submission
         UserSubmitBallot(SessionId),
@@ -2384,7 +2383,7 @@ mod tests {
 
     impl Eq for IntegrationState {}
 
-    /// Implement Stateright Model trait
+    /// Implement Stateright Model trait.
     impl Model for IntegrationState {
         type State = Self;
         type Action = Action;
@@ -2541,10 +2540,10 @@ mod tests {
             for (&session_id, queue) in &state.pending_messages.to_dbb {
                 if let Some(msg) = queue.front() {
                     match msg {
-                        ProtocolMessage::SubmitSignedBallot(_) => {
+                        ProtocolMsg::SubmitSignedBallot(_) => {
                             actions.push(Action::DBBProcessSignedBallot { session_id });
                         }
-                        ProtocolMessage::CastReq(_) => {
+                        ProtocolMsg::CastReq(_) => {
                             let tracker = state
                                 .voter_sessions
                                 .get(&session_id)
@@ -2558,10 +2557,10 @@ mod tests {
                             ));
                             actions.push(Action::DBBProcessCastReq { session_id });
                         }
-                        ProtocolMessage::CheckReq(_) => {
+                        ProtocolMsg::CheckReq(_) => {
                             actions.push(Action::DBBProcessCheckReq { session_id });
                         }
-                        ProtocolMessage::Randomizer(_) => {
+                        ProtocolMsg::Randomizer(_) => {
                             actions.push(Action::DBBProcessRandomizer { session_id });
                         }
                         _ => {
@@ -2990,7 +2989,7 @@ mod tests {
                             .find(|(_, queue)| {
                                 queue
                                     .front()
-                                    .is_some_and(|msg| matches!(msg, ProtocolMessage::AuthReq(_)))
+                                    .is_some_and(|msg| matches!(msg, ProtocolMsg::AuthReq(_)))
                             })
                             .map(|(session_id, _)| *session_id);
 
@@ -3010,9 +3009,9 @@ mod tests {
                             .to_eas
                             .iter()
                             .find(|(_, queue)| {
-                                queue.front().is_some_and(|msg| {
-                                    matches!(msg, ProtocolMessage::AuthFinish(_))
-                                })
+                                queue
+                                    .front()
+                                    .is_some_and(|msg| matches!(msg, ProtocolMsg::AuthFinish(_)))
                             })
                             .map(|(session_id, _)| *session_id);
 
@@ -3030,8 +3029,8 @@ mod tests {
                         let (auth_req_id, as_msg) = next.pending_messages.to_as_service[0].clone();
 
                         match as_msg {
-                            AuthServiceMessage::InitAuthReq(_)
-                            | AuthServiceMessage::AuthServiceQuery(_) => {
+                            AuthServiceMsg::InitAuthReq(_)
+                            | AuthServiceMsg::AuthServiceQuery(_) => {
                                 if let Some(session_id) = next.auth_req_to_voter.get(&auth_req_id) {
                                     let session = &next.voter_sessions.get_mut(session_id).unwrap();
                                     match session.profile {

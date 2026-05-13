@@ -4,5 +4,7 @@
 
 //! This module contains the implementation for the `VoterAuthenticationActor`.
 
+/// EAS sub-actors.
 pub mod sub_actors;
+/// Top-level election administration server actor.
 pub mod top_level_actor;

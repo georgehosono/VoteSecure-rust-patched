@@ -12,9 +12,7 @@ use crate::cryptography::{
     RandomizersCryptogram, RandomizersStruct, Signature, SigningKey, VerifyingKey,
 };
 use crate::elections::{BallotTracker, ElectionHash};
-use crate::messages::{
-    CheckReqMsg, FwdCheckReqMsg, ProtocolMessage, RandomizerMsg, RandomizerMsgData,
-};
+use crate::messages::{CheckReqMsg, FwdCheckReqMsg, ProtocolMsg, RandomizerMsg, RandomizerMsgData};
 
 use cryptography::utils::serialization::VSerializable;
 
@@ -26,7 +24,7 @@ pub enum CheckingInput {
     /// Starts the checking protocol, putting it in a state to listen for the request.
     Start,
     /// A network message intended for this subprotocol.
-    NetworkMessage(ProtocolMessage),
+    NetworkMessage(ProtocolMsg),
     /// The user's response to the approval request.
     UserApproval(bool),
 }
@@ -48,7 +46,7 @@ pub enum CheckingOutput {
 #[derive(Debug, Clone)]
 pub enum BallotCheckOutcome {
     /// The user approved the request; the host should send the encapsulated message.
-    RandomizersSent { randomizer_msg: ProtocolMessage },
+    RandomizersSent { randomizer_msg: ProtocolMsg },
     /// The user denied the request.
     RequestDenied,
 }
@@ -67,7 +65,7 @@ enum SubState {
 #[derive(Clone, Debug)]
 pub struct CheckingActor {
     state: SubState,
-    // --- Injected State from TopLevelActor ---
+    // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     dbb_verifying_key: VerifyingKey,
     session_signing_key: SigningKey,
@@ -78,6 +76,17 @@ pub struct CheckingActor {
 
 impl CheckingActor {
     /// Creates a new `CheckingActor`.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_verifying_key` - The DBB's verifying key for verifying bulletin signatures.
+    /// * `session_signing_key` - The ephemeral session signing key for this check session.
+    /// * `session_verifying_key` - The ephemeral session verifying key for this check session.
+    /// * `ballot_tracker` - The ballot tracker identifying the submitted ballot.
+    /// * `ballot_randomizers` - The randomizers used when encrypting the ballot.
+    ///
+    /// # Returns
+    /// A new `CheckingActor` in the `ReadyToStart` state.
     pub fn new(
         election_hash: ElectionHash,
         dbb_verifying_key: VerifyingKey,
@@ -98,6 +107,12 @@ impl CheckingActor {
     }
 
     /// Processes an input for the Ballot Checking subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// A `CheckingOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: CheckingInput) -> CheckingOutput {
         match (self.state.clone(), input) {
             // The user has initiated the check, so we now wait for the forwarded request.
@@ -109,7 +124,7 @@ impl CheckingActor {
             // The expected forwarded request has arrived. Now ask the user for approval.
             (
                 SubState::AwaitingRequest,
-                CheckingInput::NetworkMessage(ProtocolMessage::FwdCheckReq(request)),
+                CheckingInput::NetworkMessage(ProtocolMsg::FwdCheckReq(request)),
             ) => {
                 // Perform Forwarded Ballot Check Request Checks from the spec
                 if let Err(reason) = self.perform_forwarded_check_request_checks(&request) {
@@ -137,7 +152,7 @@ impl CheckingActor {
                     match self.create_randomizer_message(&request) {
                         Ok(randomizer_msg) => {
                             CheckingOutput::Success(BallotCheckOutcome::RandomizersSent {
-                                randomizer_msg: ProtocolMessage::Randomizer(randomizer_msg),
+                                randomizer_msg: ProtocolMsg::Randomizer(randomizer_msg),
                             })
                         }
                         Err(error) => CheckingOutput::Failure(error),
@@ -155,7 +170,7 @@ impl CheckingActor {
 
     // --- Forwarded Ballot Check Request Checks (Phase 1) ---
 
-    /// Performs all "Forwarded Ballot Check Request Checks" from the specification
+    /// Performs all "Forwarded Ballot Check Request Checks" from the specification.
     ///
     /// From spec:
     /// 1. The election_hash is the hash of the election configuration item for the current election.
@@ -172,7 +187,7 @@ impl CheckingActor {
         Ok(())
     }
 
-    /// Check #1: The election_hash is the hash of the election configuration item for the current election
+    /// Check #1: The election_hash is the hash of the election configuration item for the current election.
     fn check_fwd_req_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
             return Err("FwdCheckReqMsg has incorrect election hash".to_string());
@@ -181,7 +196,7 @@ impl CheckingActor {
         Ok(())
     }
 
-    /// Check #2: The message is a valid Ballot Check Request Message
+    /// Check #2: The message is a valid Ballot Check Request Message.
     fn check_fwd_req_message(&self, message: &CheckReqMsg) -> Result<(), String> {
         self.check_embedded_check_req_election_hash(&message.data.election_hash)?;
         self.check_embedded_check_req_tracker(&message.data.tracker)?;
@@ -191,7 +206,7 @@ impl CheckingActor {
         Ok(())
     }
 
-    /// Check #3: The signature is a valid signature by the digital ballot box signing key
+    /// Check #3: The signature is a valid signature by the digital ballot box signing key.
     fn check_fwd_req_signature(
         &self,
         data: &crate::messages::FwdCheckReqMsgData,
@@ -204,7 +219,7 @@ impl CheckingActor {
 
     // --- Embedded Check Request Validation ---
 
-    /// Embedded Check #1: The election_hash is the hash of the election configuration item for the current election
+    /// Embedded Check #1: The election_hash is the hash of the election configuration item for the current election.
     fn check_embedded_check_req_election_hash(
         &self,
         election_hash: &ElectionHash,
@@ -216,8 +231,8 @@ impl CheckingActor {
         Ok(())
     }
 
-    /// Embedded Check #2: The tracker corresponds to our Ballot Submission Bulletin entry from this session
-    /// Note: This should match the tracker we received from the DBB acknowledgment during submission
+    /// Embedded Check #2: The tracker corresponds to our Ballot Submission Bulletin entry from this session.
+    /// Note: This should match the tracker we received from the DBB acknowledgment during submission.
     fn check_embedded_check_req_tracker(&self, tracker: &str) -> Result<(), String> {
         if tracker != self.ballot_tracker {
             return Err(
@@ -228,14 +243,14 @@ impl CheckingActor {
         Ok(())
     }
 
-    /// Embedded Check #3: The public_enc_key and public_sign_key are valid public keys
+    /// Embedded Check #3: The public_enc_key and public_sign_key are valid public keys.
     fn check_embedded_check_req_public_keys(&self) -> Result<(), String> {
         // The cryptography library types ensure these are valid by construction
         // Additional validation could be done here if needed (key format, curve validation, etc.)
         Ok(())
     }
 
-    /// Embedded Check #4: The signature is a valid signature by the public_sign_key
+    /// Embedded Check #4: The signature is a valid signature by the public_sign_key.
     fn check_embedded_check_req_signature(
         &self,
         data: &crate::messages::CheckReqMsgData,
@@ -248,7 +263,7 @@ impl CheckingActor {
 
     // --- Randomizer Message Creation and Validation ---
 
-    /// Creates a RandomizerMsg in response to an approved check request
+    /// Creates a RandomizerMsg in response to an approved check request.
     fn create_randomizer_message(&self, request: &FwdCheckReqMsg) -> Result<RandomizerMsg, String> {
         // Encrypt the ballot randomizer for the BCA
         let encrypted_randomizers = self.create_encrypted_randomizers(&request.data.message)?;
@@ -268,7 +283,7 @@ impl CheckingActor {
         Ok(randomizer_msg)
     }
 
-    /// Creates encrypted randomizers for the ballot being checked
+    /// Creates encrypted randomizers for the ballot being checked.
     fn create_encrypted_randomizers(
         &self,
         check_req: &CheckReqMsg,

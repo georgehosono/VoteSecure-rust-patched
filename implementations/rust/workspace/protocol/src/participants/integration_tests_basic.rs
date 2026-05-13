@@ -11,8 +11,7 @@
 #[cfg(test)]
 mod tests {
     use crate::auth_service::{
-        AuthServiceMessage, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg,
-        TokenReturnMsg,
+        AuthServiceMsg, AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
     };
     use crate::bulletins::Bulletin;
     use crate::cryptography::{Context, CryptographyContext, ElectionKey, SigningKey};
@@ -21,7 +20,7 @@ mod tests {
         string_to_election_hash,
     };
     use crate::participants::ballot_check_application::top_level_actor::{
-        ActorInput as BCAInput, TopLevelActor as BCAActor,
+        ActorInput as BCAInput, BallotCheckApplicationActor as BCAActor,
     };
     use crate::participants::digital_ballot_box::{
         ActorInput as DBBInput, ActorOutput as DBBOutput, BulletinBoard, Command as DBBCommand,
@@ -33,12 +32,12 @@ mod tests {
     };
     use crate::participants::election_admin_server::top_level_actor::{
         ActorInput as EASInput, AuthReqId, Command as EASCommand,
-        SubprotocolInput as EASSubprotocolInput, SubprotocolOutput as EASSubprotocolOutput,
-        TopLevelActor as EASActor,
+        ElectionAdminServerActor as EASActor, SubprotocolInput as EASSubprotocolInput,
+        SubprotocolOutput as EASSubprotocolOutput,
     };
     use crate::participants::voting_application::top_level_actor::{
         ActorInput as VAInput, Command as VACommand, SubprotocolInput as VASubprotocolInput,
-        SubprotocolOutput as VASubprotocolOutput, TopLevelActor as VAActor,
+        SubprotocolOutput as VASubprotocolOutput, VotingApplicationActor as VAActor,
     };
     use std::collections::BTreeMap;
 
@@ -49,8 +48,8 @@ mod tests {
     // We use the real DBB implementation with in-memory storage and bulletin board.
     // Only the AS (Authentication Service) remains mocked as it's an external third-party service.
 
-    /// Mock Authentication Service
-    /// Simulates the external third-party authentication service
+    /// Mock Authentication Service; simulates the behavior of a third-party
+    /// authentication service.
     #[derive(Clone, Debug)]
     struct MockAS {
         // Counter for generating unique tokens and session IDs
@@ -67,7 +66,7 @@ mod tests {
             }
         }
 
-        /// Handle InitAuthReqMsg from EAS - create a new session and return token
+        /// Handle InitAuthReqMsg from EAS - create a new session and return token.
         fn handle_init_auth_req(&mut self, _msg: InitAuthReqMsg) -> TokenReturnMsg {
             // Generate unique session ID and token
             let session_id = format!("session_{}", self.next_session_id);
@@ -83,7 +82,7 @@ mod tests {
             TokenReturnMsg { token, session_id }
         }
 
-        /// Handle AuthServiceQueryMsg from EAS - return authentication result
+        /// Handle AuthServiceQueryMsg from EAS - return authentication result.
         fn handle_query(&self, msg: AuthServiceQueryMsg) -> Result<AuthServiceReportMsg, String> {
             let (token, biographical_info) = self
                 .sessions
@@ -103,7 +102,7 @@ mod tests {
 
     // --- Integration Test State ---
 
-    /// Helper to create test election keys
+    /// Helper to create test election keys.
     fn setup_election() -> (ElectionHash, ElectionKey, SigningKey, SigningKey) {
         use crate::cryptography::generate_encryption_keypair;
 
@@ -161,7 +160,7 @@ mod tests {
     /// - `checks_per_submission`: How many times each voter checks their ballot before casting
     /// - `resubmissions`: How many times each voter resubmits (abandoning previous ballot)
     ///
-    /// Each voter: authenticates -> (submit -> check* -> [resubmit])* -> submit -> check* -> cast
+    /// Each voter: authenticates -> (submit -> check* -> [resubmit])* -> submit -> check* -> cast.
     fn test_voters_with_checks_and_resubmits(
         num_voters: usize,
         checks_per_submission: usize,
@@ -244,7 +243,7 @@ mod tests {
 
                 match auth_sub_output {
                     AuthenticationOutput::SendMessage(msg) => {
-                        if let crate::messages::ProtocolMessage::AuthReq(auth_req) = msg {
+                        if let crate::messages::ProtocolMsg::AuthReq(auth_req) = msg {
                             println!("VA -> EAS: AuthReq");
 
                             // EAS processes auth request (creates new sub-actor)
@@ -265,7 +264,7 @@ mod tests {
 
                                 // Process EAS output (should be InitAuthReq to AS)
                                 if let VoterAuthenticationOutput::AuthServiceMessage(
-                                    AuthServiceMessage::InitAuthReq(init_req),
+                                    AuthServiceMsg::InitAuthReq(init_req),
                                 ) = eas_output
                                 {
                                     println!("EAS -> AS: InitAuthReq");
@@ -279,7 +278,7 @@ mod tests {
                                         eas.process_input(EASInput::SubprotocolInput(
                                             EASSubprotocolInput::VoterAuthentication(
                                                 VoterAuthenticationInput::AuthServiceMessage(
-                                                    AuthServiceMessage::TokenReturn(token_return),
+                                                    AuthServiceMsg::TokenReturn(token_return),
                                                 ),
                                             ),
                                             auth_req_id,
@@ -294,7 +293,7 @@ mod tests {
                                     {
                                         // EAS should send HandToken to VA
                                         assert_eq!(messages.len(), 1, "Expected 1 message");
-                                        if let crate::messages::ProtocolMessage::HandToken(
+                                        if let crate::messages::ProtocolMsg::HandToken(
                                             hand_token_msg,
                                         ) = &messages[0]
                                         {
@@ -305,7 +304,7 @@ mod tests {
                                                 VAInput::SubprotocolInput(
                                                     VASubprotocolInput::Authentication(
                                                         crate::participants::voting_application::sub_actors::authentication::AuthenticationInput::NetworkMessage(
-                                                            crate::messages::ProtocolMessage::HandToken(hand_token_msg.clone())
+                                                            crate::messages::ProtocolMsg::HandToken(hand_token_msg.clone())
                                                         )
                                                     )
                                                 )
@@ -331,7 +330,7 @@ mod tests {
 
                                             if let Ok(VASubprotocolOutput::Authentication(
                                                 AuthenticationOutput::SendMessage(
-                                                    crate::messages::ProtocolMessage::AuthFinish(
+                                                    crate::messages::ProtocolMsg::AuthFinish(
                                                         auth_finish_msg,
                                                     ),
                                                 ),
@@ -344,7 +343,7 @@ mod tests {
                                                     EASInput::SubprotocolInput(
                                                         EASSubprotocolInput::VoterAuthentication(
                                                             VoterAuthenticationInput::NetworkMessage(
-                                                                crate::messages::ProtocolMessage::AuthFinish(
+                                                                crate::messages::ProtocolMsg::AuthFinish(
                                                                     auth_finish_msg,
                                                                 ),
                                                             ),
@@ -360,7 +359,7 @@ mod tests {
 
                                                 if let Ok(EASSubprotocolOutput::VoterAuthentication(
                                                     VoterAuthenticationOutput::AuthServiceMessage(
-                                                        AuthServiceMessage::AuthServiceQuery(query),
+                                                        AuthServiceMsg::AuthServiceQuery(query),
                                                     ),
                                                     _,
                                                 )) = finish_result
@@ -378,7 +377,7 @@ mod tests {
                                                         EASInput::SubprotocolInput(
                                                             EASSubprotocolInput::VoterAuthentication(
                                                                 VoterAuthenticationInput::AuthServiceMessage(
-                                                                    AuthServiceMessage::AuthServiceReport(report),
+                                                                    AuthServiceMsg::AuthServiceReport(report),
                                                                 ),
                                                             ),
                                                             auth_req_id,
@@ -441,10 +440,10 @@ mod tests {
 
                                                             for msg in &messages {
                                                                 match msg {
-                                                                    crate::messages::ProtocolMessage::AuthVoter(m) => {
+                                                                    crate::messages::ProtocolMsg::AuthVoter(m) => {
                                                                         auth_voter_msg = Some(m.clone());
                                                                     }
-                                                                    crate::messages::ProtocolMessage::ConfirmAuthorization(m) => {
+                                                                    crate::messages::ProtocolMsg::ConfirmAuthorization(m) => {
                                                                         confirm_auth_msg = Some(m.clone());
                                                                     }
                                                                     _ => {}
@@ -471,7 +470,7 @@ mod tests {
                                                                 VAInput::SubprotocolInput(
                                                                     VASubprotocolInput::Authentication(
                                                                         crate::participants::voting_application::sub_actors::authentication::AuthenticationInput::NetworkMessage(
-                                                                            crate::messages::ProtocolMessage::ConfirmAuthorization(_confirm_auth_msg)
+                                                                            crate::messages::ProtocolMsg::ConfirmAuthorization(_confirm_auth_msg)
                                                                         )
                                                                     )
                                                                 )
@@ -544,9 +543,8 @@ mod tests {
 
                     match submission_output {
                         SubmissionOutput::SendMessage(msg) => {
-                            if let crate::messages::ProtocolMessage::SubmitSignedBallot(
-                                signed_ballot,
-                            ) = msg
+                            if let crate::messages::ProtocolMsg::SubmitSignedBallot(signed_ballot) =
+                                msg
                             {
                                 println!("VA -> DBB: SignedBallot");
 
@@ -562,28 +560,26 @@ mod tests {
                                 let output = dbb
                                     .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                                         connection_id,
-                                        message:
-                                            crate::messages::ProtocolMessage::SubmitSignedBallot(
-                                                signed_ballot,
-                                            ),
+                                        message: crate::messages::ProtocolMsg::SubmitSignedBallot(
+                                            signed_ballot,
+                                        ),
                                     }))
                                     .expect("DBB should accept ballot");
 
                                 // Extract tracker message from output
-                                let tracker_msg = if let DBBOutput::OutgoingMessage(outgoing) =
-                                    output
-                                {
-                                    if let crate::messages::ProtocolMessage::ReturnBallotTracker(
-                                        tracker,
-                                    ) = outgoing.message
-                                    {
-                                        tracker
+                                let tracker_msg =
+                                    if let DBBOutput::OutgoingMessage(outgoing) = output {
+                                        if let crate::messages::ProtocolMsg::ReturnBallotTracker(
+                                            tracker,
+                                        ) = outgoing.message
+                                        {
+                                            tracker
+                                        } else {
+                                            panic!("Expected ReturnBallotTracker from DBB");
+                                        }
                                     } else {
-                                        panic!("Expected ReturnBallotTracker from DBB");
-                                    }
-                                } else {
-                                    panic!("Expected OutgoingMessage from DBB");
-                                };
+                                        panic!("Expected OutgoingMessage from DBB");
+                                    };
 
                                 println!("DBB -> VA: TrackerMsg");
 
@@ -591,7 +587,7 @@ mod tests {
                                 let tracker_result = va.process_input(VAInput::SubprotocolInput(
                             VASubprotocolInput::Submission(
                                 crate::participants::voting_application::sub_actors::submission::SubmissionInput::NetworkMessage(
-                                    crate::messages::ProtocolMessage::ReturnBallotTracker(tracker_msg.clone())
+                                    crate::messages::ProtocolMsg::ReturnBallotTracker(tracker_msg.clone())
                                 )
                             )
                         ));
@@ -688,7 +684,7 @@ mod tests {
 
             match check_output {
                 BallotCheckOutput::SendMessage(msg) => {
-                    if let crate::messages::ProtocolMessage::CheckReq(check_req) = msg {
+                    if let crate::messages::ProtocolMsg::CheckReq(check_req) = msg {
                         println!("BCA -> DBB: CheckReq");
 
                         // Assign connection ID for BCA
@@ -699,7 +695,7 @@ mod tests {
                         let output = dbb
                             .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                                 connection_id: bca_connection_id,
-                                message: crate::messages::ProtocolMessage::CheckReq(check_req),
+                                message: crate::messages::ProtocolMsg::CheckReq(check_req),
                             }))
                             .expect("DBB should accept check request");
 
@@ -722,7 +718,7 @@ mod tests {
 
                             // Extract the forwarded check request
                             if let DBBOutput::OutgoingMessage(outgoing) = provide_output {
-                                if let crate::messages::ProtocolMessage::FwdCheckReq(fwd_check) = outgoing.message {
+                                if let crate::messages::ProtocolMsg::FwdCheckReq(fwd_check) = outgoing.message {
                                     println!("DBB -> VA: FwdCheckReq");
                                     fwd_check
                                 } else {
@@ -743,7 +739,7 @@ mod tests {
                         let check_req_result = va.process_input(VAInput::SubprotocolInput(
                             VASubprotocolInput::Checking(
                                 crate::participants::voting_application::sub_actors::checking::CheckingInput::NetworkMessage(
-                                    crate::messages::ProtocolMessage::FwdCheckReq(fwd_check)
+                                    crate::messages::ProtocolMsg::FwdCheckReq(fwd_check)
                                 )
                             )
                         ));
@@ -767,7 +763,7 @@ mod tests {
                                 // Extract the randomizer message from the outcome
                                 use crate::participants::voting_application::sub_actors::checking::BallotCheckOutcome;
                                 if let BallotCheckOutcome::RandomizersSent { randomizer_msg } = outcome {
-                                    if let crate::messages::ProtocolMessage::Randomizer(randomizer_msg) = randomizer_msg {
+                                    if let crate::messages::ProtocolMsg::Randomizer(randomizer_msg) = randomizer_msg {
                                         println!("VA -> DBB: Randomizer");
 
                                         // Route the Randomizer to the correct BCA checking session
@@ -778,13 +774,13 @@ mod tests {
                                         let output = dbb
                                             .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                                                 connection_id: bca_checking_session_id,
-                                                message: crate::messages::ProtocolMessage::Randomizer(randomizer_msg),
+                                                message: crate::messages::ProtocolMsg::Randomizer(randomizer_msg),
                                             }))
                                             .expect("DBB should accept randomizer");
 
                                         // Extract forwarded randomizer from output
                                         let fwd_randomizer = if let DBBOutput::OutgoingMessage(outgoing) = output {
-                                            if let crate::messages::ProtocolMessage::FwdRandomizer(fwd_rand) = outgoing.message {
+                                            if let crate::messages::ProtocolMsg::FwdRandomizer(fwd_rand) = outgoing.message {
                                                 fwd_rand
                                             } else {
                                                 panic!("Expected FwdRandomizer from DBB");
@@ -799,7 +795,7 @@ mod tests {
                                         let check_complete = bca.process_input(BCAInput::SubprotocolInput(
                                             crate::participants::ballot_check_application::top_level_actor::SubprotocolInput::BallotCheck(
                                                 crate::participants::ballot_check_application::sub_actors::ballot_check::BallotCheckInput::NetworkMessage(
-                                                    crate::messages::ProtocolMessage::FwdRandomizer(fwd_randomizer)
+                                                    crate::messages::ProtocolMsg::FwdRandomizer(fwd_randomizer)
                                                 )
                                             )
                                         ));
@@ -909,7 +905,7 @@ mod tests {
                         panic!("Casting failed: {}", err);
                     }
                     CastingOutput::SendMessage(msg) => {
-                        if let crate::messages::ProtocolMessage::CastReq(cast_req) = msg {
+                        if let crate::messages::ProtocolMsg::CastReq(cast_req) = msg {
                             println!("VA -> DBB: CastReq");
 
                             // Use the same connection ID that was assigned during submission
@@ -919,13 +915,13 @@ mod tests {
                             let output = dbb
                                 .process_input(DBBInput::IncomingMessage(DBBIncomingMessage {
                                     connection_id,
-                                    message: crate::messages::ProtocolMessage::CastReq(cast_req),
+                                    message: crate::messages::ProtocolMsg::CastReq(cast_req),
                                 }))
                                 .expect("DBB should accept cast");
 
                             // Extract cast confirmation from output
                             let cast_conf = if let DBBOutput::OutgoingMessage(outgoing) = output {
-                                if let crate::messages::ProtocolMessage::CastConf(conf) =
+                                if let crate::messages::ProtocolMsg::CastConf(conf) =
                                     outgoing.message
                                 {
                                     conf
@@ -942,7 +938,7 @@ mod tests {
                             let cast_complete = va.process_input(VAInput::SubprotocolInput(
                             VASubprotocolInput::Casting(
                                 crate::participants::voting_application::sub_actors::casting::CastingInput::NetworkMessage(
-                                    crate::messages::ProtocolMessage::CastConf(cast_conf.clone())
+                                    crate::messages::ProtocolMsg::CastConf(cast_conf.clone())
                                 )
                             )
                         ));

@@ -2,7 +2,7 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
-//! Full protocol model: from dkg to decryption
+//! Full protocol model: from dkg to decryption.
 
 /// The composed Ascent logic (for use by the Trustee Application).
 pub mod composed_ascent_logic {
@@ -18,6 +18,7 @@ pub mod composed_ascent_logic {
         include_source!(crate::trustee_protocols::trustee_application::ascent_logic::decrypt::infer::decrypt_infer);
     }
 
+    /// Run the composed Ascent logic on a set of trustee-board messages.
     pub(crate) fn run(messages: &[AscentMsg]) -> Result<Vec<Action>, String> {
         let mut prog = AscentProgram {
             message: messages.iter().map(|m| (m.clone(),)).collect(),
@@ -90,24 +91,28 @@ mod stateright {
                 !ballots(cfg_hash, pk_hash, _, _);
         }
 
+        /// Create a fresh Ascent program for composed-protocol Stateright tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
-    // stateright test harness
+    /// Stateright test harness
     struct Harness<C: Context, const W: usize, const T: usize, const P: usize> {
         phantom_c: PhantomData<C>,
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> Harness<C, W, T, P> {
+        /// Create a new composed-protocol Stateright harness.
         pub(crate) fn new() -> Self {
             Self {
                 phantom_c: PhantomData,
             }
         }
+        /// Construct the initial bulletin board for model exploration.
         pub(crate) fn get_bb() -> BulletinBoard<C, W, T, P> {
             BulletinBoard::new(ascent_logic::dkg::stateright::DUMMY_CFG.into())
         }
+        /// Compute and record a trustee shares message.
         pub(crate) fn compute_share(
             trustee: usize,
             bb: &mut BulletinBoard<C, W, T, P>,
@@ -119,6 +124,7 @@ mod stateright {
 
             ret
         }
+        /// Compute and record a trustee public key message from board shares.
         pub(crate) fn compute_pk(
             trustee: usize,
             bb: &mut BulletinBoard<C, W, T, P>,
@@ -137,6 +143,7 @@ mod stateright {
 
             ret
         }
+        /// Compute and record initial ballots plus the selected trustee order.
         pub(crate) fn compute_ballots(
             bb: &mut BulletinBoard<C, W, T, P>,
         ) -> (CiphertextsHash, Vec<TrusteeIndex>) {
@@ -159,6 +166,7 @@ mod stateright {
             (ret, trustees.to_vec())
         }
 
+        /// Compute and record one mix output for `trustee`.
         pub(crate) fn compute_mix(
             bb: &mut BulletinBoard<C, W, T, P>,
             trustee: TrusteeIndex,
@@ -202,6 +210,7 @@ mod stateright {
             ret
         }
 
+        /// Verify the latest mix proof on the board.
         pub(crate) fn verify_mix(bb: &mut BulletinBoard<C, W, T, P>) -> bool {
             let pk = bb.pks[0].clone().unwrap();
             let ny_pk = NYPublicKey::from_elgamal(&pk, C::generator());
@@ -237,6 +246,7 @@ mod stateright {
                 .unwrap()
         }
 
+        /// Compute and record partial decryptions for `trustee`.
         pub(crate) fn compute_partial_decryptions(
             bb: &mut BulletinBoard<C, W, T, P>,
             trustee: TrusteeIndex,
@@ -266,6 +276,7 @@ mod stateright {
             ret
         }
 
+        /// Compute and record final plaintexts for `trustee`.
         pub(crate) fn compute_plaintexts(
             bb: &mut BulletinBoard<C, W, T, P>,
             trustee: TrusteeIndex,
@@ -425,6 +436,7 @@ mod stateright {
         }
     }
 
+    /// Internal bulletin board model used by the Ascent/Stateright harness.
     #[derive(Clone)]
     pub(crate) struct BulletinBoard<C: Context, const W: usize, const T: usize, const P: usize> {
         pub(crate) cfg_hash: CfgHash,
@@ -440,6 +452,7 @@ mod stateright {
         pub(crate) plaintexts: [Option<Plaintexts<C, W>>; T],
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> BulletinBoard<C, W, T, P> {
+        /// Create a new internal bulletin board model.
         pub(crate) fn new(cfg_hash: CfgHash) -> Self {
             let pks = [const { None }; P];
             let shares = [const { None }; P];
@@ -468,14 +481,17 @@ mod stateright {
             }
         }
 
+        /// Record a shares message in the internal bulletin board model.
         pub(crate) fn add_shares(&mut self, shares: DealerShares<C, T, P>, sender: TrusteeIndex) {
             self.shares[sender - 1] = Some(shares);
         }
 
+        /// Record a public-key message in the internal bulletin board model.
         pub(crate) fn add_pk(&mut self, pk: EGPublicKey<C>, sender: TrusteeIndex) {
             self.pks[sender - 1] = Some(pk);
         }
 
+        /// Record ballots and their associated participants.
         pub(crate) fn add_ballots(
             &mut self,
             plaintexts: Vec<[C::Element; W]>,
@@ -486,6 +502,7 @@ mod stateright {
             self.ballots = Some(Ballots::new(ballots, trustees));
         }
 
+        /// Record a mix message in the internal bulletin board model.
         pub(crate) fn add_mix(&mut self, mix: Mix<C, W>, sender: TrusteeIndex) {
             let ballots = self.ballots.as_ref().unwrap();
             let position = ballots
@@ -496,6 +513,7 @@ mod stateright {
             self.mixes[position] = Some(mix);
         }
 
+        /// Record partial decryptions in the internal bulletin board model.
         pub(crate) fn add_partial_decryptions(
             &mut self,
             dfactors: Vec<DecryptionFactor<C, P, W>>,
@@ -510,6 +528,7 @@ mod stateright {
             self.decryptions[position] = Some(dfactors);
         }
 
+        /// Record plaintext ballots in the internal bulletin board model.
         pub(crate) fn add_plaintexts(
             &mut self,
             plaintexts: Plaintexts<C, W>,
@@ -552,12 +571,14 @@ mod stateright {
     impl<C: Context, const W: usize, const T: usize, const P: usize> Eq for BulletinBoard<C, W, T, P> {}
 
     // bulletin board artifacts
+    /// Ballots and their participant indices in the internal model.
     #[derive(Clone, PartialEq, Debug)]
     pub struct Ballots<C: Context, const W: usize, const T: usize> {
         pub ciphertexts: Vec<NYCiphertext<C, W>>,
         pub participants: [TrusteeIndex; T],
     }
     impl<C: Context, const W: usize, const T: usize> Ballots<C, W, T> {
+        /// Create a new ballot set for the internal bulletin board model.
         pub(crate) fn new(
             ciphertexts: Vec<NYCiphertext<C, W>>,
             participants: [TrusteeIndex; T],
@@ -585,12 +606,14 @@ mod stateright {
         }
     }
 
+    /// A mix output in the internal bulletin board model.
     #[derive(Clone, PartialEq, Debug, VSerializable)]
     pub struct Mix<C: Context, const W: usize> {
         pub mixed_ballots: Vec<EGCiphertext<C, W>>,
         pub proof: ShuffleProof<C, W>,
     }
     impl<C: Context, const W: usize> Mix<C, W> {
+        /// Create a new internal mix record.
         pub(crate) fn new(
             mixed_ballots: Vec<EGCiphertext<C, W>>,
             proof: ShuffleProof<C, W>,
@@ -602,11 +625,13 @@ mod stateright {
         }
     }
 
+    /// Plaintext ballot elements in the internal bulletin board model.
     #[derive(Clone, PartialEq, Debug, VSerializable)]
     pub(crate) struct Plaintexts<C: Context, const W: usize> {
         values: Vec<[C::Element; W]>,
     }
     impl<C: Context, const W: usize> Plaintexts<C, W> {
+        /// Create a new plaintext record.
         pub(crate) fn new(values: Vec<[C::Element; W]>) -> Self {
             Self { values }
         }

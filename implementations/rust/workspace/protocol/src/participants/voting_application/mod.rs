@@ -4,5 +4,7 @@
 
 //! This module contains the implementation for the `VotingApplicationActor`.
 
+/// Voting Application sub-actors.
 pub mod sub_actors;
+/// Top-level Voting Application actor.
 pub mod top_level_actor;

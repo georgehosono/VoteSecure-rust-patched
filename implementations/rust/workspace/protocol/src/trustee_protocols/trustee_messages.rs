@@ -4,7 +4,7 @@
 
 //! This file contains all the message structures exchanged between trustees
 //! and the trustee administration server. All individual message structs
-//! are unified under the `TrusteeMessage` enum for type-safe handling.
+//! are unified under the `TrusteeMsg` enum for type-safe handling.
 
 use enum_dispatch::enum_dispatch;
 use std::cmp::Ordering;
@@ -35,13 +35,14 @@ use crate::trustee_protocols::trustee_cryptography::{
 // --- Trustee Structures and Update Messages ---
 // These occur across all four trustee subprotocols.
 
-// A signature checking trait for messages, to encapsulate signature
-// checking. Note that checking that the trustee is actually a real
-// trustee needs to be done separately; this simply checks that
-// a message's signature verifies using the purported signer's
-// verifying key within the message.
+/// Signature-checking trait for trustee protocol messages.
+///
+/// This trait validates only cryptographic signatures for the message
+/// signer carried in the message payload. Authorization checks (e.g.,
+/// whether the signer is a known trustee) are performed elsewhere.
 #[enum_dispatch]
 pub trait CheckSignature {
+    /// Verify `(data, signature)` under `verifying_key`.
     fn internal_check_signature(
         &self,
         data: &[u8],
@@ -51,21 +52,31 @@ pub trait CheckSignature {
         crate::cryptography::verify_signature(data, signature, verifying_key)
     }
 
+    /// Check this message's signature.
+    ///
+    /// Default implementation returns an error; message types should
+    /// override this as appropriate.
     fn check_signature(&self) -> Result<(), String> {
         Err("Signature check not implemented for this struct.".to_string())
     }
 
+    /// Return signer identifier for this message.
+    ///
+    /// Default implementation returns an error.
     fn signer_id(&self) -> Result<TrusteeID, String> {
         Err("Signer ID not implemented for this struct.".to_string())
     }
 
+    /// Return originator identifier for this message.
+    ///
+    /// Default implementation returns an error.
     fn originator_id(&self) -> Result<TrusteeID, String> {
         Err("Originator ID not implemented for this struct.".to_string())
     }
 }
 
-// The human-readable name that identifies the trustee administration
-// server in messages posted to the trustee board.
+/// Human-readable name identifying the trustee administration server
+/// in messages posted to the trustee board.
 pub const TAS_NAME: &str = "TrusteeAdministrationServer";
 
 /// A trustee (or TAS) identity, represented by a public signing key
@@ -101,7 +112,7 @@ impl Ord for TrusteeID {
 /// Full information about a trustee, including the trustee's
 /// human-readable name and both its public keys. This information is
 /// known a priori by the election authority and distributed to the
-/// trustees during setup,
+/// trustees during setup.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
 pub struct TrusteeInfo {
     pub name: String,
@@ -110,7 +121,10 @@ pub struct TrusteeInfo {
 }
 
 impl TrusteeInfo {
-    // Convert a full TrusteeInfo to a TrusteeID.
+    /// Convert full trustee metadata into a [`TrusteeID`].
+    ///
+    /// # Returns
+    /// A `TrusteeID` containing the trustee's name and verifying key.
     pub fn trustee_id(&self) -> TrusteeID {
         TrusteeID {
             name: self.name.clone(),
@@ -188,6 +202,12 @@ pub struct SetupMsgData {
 impl SetupMsgData {
     /// Utility function to allow comparison of the
     /// values in the struct other than the signer.
+    ///
+    /// # Arguments
+    /// * `other` - The other `SetupMsgData` to compare against.
+    ///
+    /// # Returns
+    /// `true` if all fields except `signer` are equal, `false` otherwise.
     pub fn equal_except_signer(&self, other: &SetupMsgData) -> bool {
         other.originator == self.originator
             && other.manifest == self.manifest
@@ -197,6 +217,7 @@ impl SetupMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed setup message wrapper.
 pub struct SetupMsg {
     pub data: SetupMsgData,
     pub signature: Signature,
@@ -225,6 +246,12 @@ impl SetupMsg {
     /// `checking_trustee` parameter is the trustee that is
     /// performing the sanity check, so it must appear in the
     /// trustees list of the setup message.
+    ///
+    /// # Arguments
+    /// * `checking_trustee` - The trustee performing the check; must appear in the trustees list.
+    ///
+    /// # Returns
+    /// `Ok(())` if the message passes all sanity checks, or an error describing the failure.
     pub fn sanity_check(&self, checking_trustee: &TrusteeInfo) -> Result<(), String> {
         // Check that the threshold is greater than 0.
         if self.data.threshold == 0 {
@@ -305,6 +332,7 @@ pub struct KeySharesMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed key-shares message wrapper.
 pub struct KeySharesMsg {
     pub data: KeySharesMsgData,
     pub signature: Signature,
@@ -340,6 +368,7 @@ pub struct ElectionPublicKeyMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed election public key message wrapper.
 pub struct ElectionPublicKeyMsg {
     pub data: ElectionPublicKeyMsgData,
     pub signature: Signature,
@@ -377,6 +406,7 @@ pub struct MixInitializationMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed mix-initialization message wrapper.
 pub struct MixInitializationMsg {
     pub data: MixInitializationMsgData,
     pub signature: Signature,
@@ -414,6 +444,7 @@ pub struct EGCryptogramsMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed ElGamal-cryptograms message wrapper.
 pub struct EGCryptogramsMsg {
     pub data: EGCryptogramsMsgData,
     pub signature: Signature,
@@ -445,6 +476,7 @@ impl CheckSignature for EGCryptogramsMsg {
 // a data structure that contains the same information as `DecryptionFactor`
 // and convert it into a `DecryptionFactor` when it is received by a trustee.
 #[derive(Debug, Clone, PartialEq, VSerializable)]
+/// Serializable representation of a trustee partial decryption.
 pub struct PartialDecryption {
     pub value: PartialDecryptionValue,
     pub proof: PartialDecryptionProof,
@@ -465,6 +497,7 @@ pub struct PartialDecryptionsMsgData {
 /// data types.
 /// P is the number of trustees initially participating in the protocol.
 #[derive(Debug, Clone, PartialEq)]
+/// Signed partial-decryptions message wrapper.
 pub struct PartialDecryptionsMsg {
     pub data: PartialDecryptionsMsgData,
     pub signature: Signature,
@@ -498,6 +531,7 @@ pub struct DecryptedBallotsMsgData {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Signed decrypted-ballots message wrapper.
 pub struct DecryptedBallotsMsg {
     pub data: DecryptedBallotsMsgData,
     pub signature: Signature,

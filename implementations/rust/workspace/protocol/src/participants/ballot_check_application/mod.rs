@@ -4,5 +4,7 @@
 
 //! This module contains the implementation for the `BallotCheckApplicationActor`.
 
+/// Ballot Check Application sub-actors.
 pub mod sub_actors;
+/// Top-level Ballot Check Application actor.
 pub mod top_level_actor;

@@ -2,11 +2,20 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
+//! State handlers and boomerang-dispatch wrappers for the Trustee
+//! application state machine.
+
+/// State handler for the decryption phase.
 pub mod decryption;
+/// State handler for the election setup phase.
 pub mod election_setup;
+/// State handler for the failed terminal phase.
 pub mod failed;
+/// State handler for the idle phase.
 pub mod idle;
+/// State handler for the key-generation phase.
 pub mod key_gen;
+/// State handler for the mixing phase.
 pub mod mixing;
 
 use enum_dispatch::enum_dispatch;
@@ -19,24 +28,31 @@ use crate::trustee_protocols::trustee_messages::{
 };
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the idle trustee state.
 pub(crate) struct Idle;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the election setup trustee state.
 pub(crate) struct ElectionSetup;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the key generation trustee state.
 pub(crate) struct KeyGen;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the mixing trustee state.
 pub(crate) struct Mixing;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the decryption trustee state.
 pub(crate) struct Decryption;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the failed trustee state.
 pub(crate) struct Failed;
 
 #[enum_dispatch]
+/// State-specific behavior for trustee protocol handling.
 pub(crate) trait TrusteeStateHandler {
     /// Handle an unhandled combination of input and message; this
     /// results in an "invalid input" response, but does not stop
@@ -246,7 +262,7 @@ pub(crate) trait TrusteeBoomerang {
     );
 }
 
-// Input wrapper structs for TrusteeBoomerang pattern
+/// Input wrapper for approving setup data.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ApproveSetup(pub SetupMsg);
 impl TrusteeBoomerang for ApproveSetup {
@@ -263,6 +279,7 @@ impl TrusteeBoomerang for ApproveSetup {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Input wrapper for starting key generation.
 pub struct StartKeyGen;
 impl TrusteeBoomerang for StartKeyGen {
     fn boomerang(
@@ -278,6 +295,7 @@ impl TrusteeBoomerang for StartKeyGen {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Input wrapper for stopping the protocol.
 pub struct Stop;
 impl TrusteeBoomerang for Stop {
     fn boomerang(

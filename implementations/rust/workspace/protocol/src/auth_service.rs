@@ -8,116 +8,85 @@
 use crate::cryptography::VerifyingKey;
 use crate::elections::ElectionHash;
 
-// Authentication Session Record
+/// Authentication session record.
 #[derive(Debug, Clone)]
 pub struct AuthSessionRecord {
-    /**
-     * Hash of the unique election configuration item.
-     */
+    /// Hash of the unique election configuration item.
     pub election_hash: ElectionHash,
 
-    /**
-     * Public key from the Initial Request Message
-     */
+    /// Public key from the initial request message.
     pub voter_verifying_key: VerifyingKey,
 
-    /**
-     * Token from the Token Return Message.
-     */
+    /// Token from the token-return message.
     pub token: String,
 
-    /**
-     * Session identifier from the Token Return Message.
-     */
+    /// Session identifier from the token-return message.
     pub session_id: String,
 }
 
-// Initiate Authentication Request Message
+/// Initiate authentication request message.
 #[derive(Debug, Clone)]
 pub struct InitAuthReqMsg {
-    /**
-     * An identifier specific to the voting system infrastructure
-     * used by the third-party authentication service to determine
-     * the verification flow for the authentication sessions we create.
-     */
+    /// Identifier used by the external authentication service to select
+    /// the verification flow for created authentication sessions.
     pub project_id: String,
 
-    /**
-     * The third-party authentication service API key specific to the EAS.
-     */
+    /// Authentication-service API key used by the EAS.
     pub api_key: String,
 }
 
-// Token Return Message
+/// Token return message.
 #[derive(Debug, Clone)]
 pub struct TokenReturnMsg {
-    /**
-     * Token to be used by the client to start an authentication session.
-     */
+    /// Token used by the client to start an authentication session.
     pub token: String,
 
-    /**
-     * A session identifier to be used by the server to request
-     * authentication session information tied to the associated token.
-     */
+    /// Session identifier used by the server to query authentication
+    /// session information tied to the associated token.
     pub session_id: String,
 }
 
-// Authentication Service Query Message
+/// Authentication Service query message.
 #[derive(Debug, Clone)]
 pub struct AuthServiceQueryMsg {
-    /**
-     * The session ID retrieved from EAS storage based on the public key
-     * used to sign the Validation Request Message.
-     */
+    /// Session ID retrieved from EAS storage for the voter session.
     pub session_id: String,
 
-    /**
-     * The third-party authentication service API key specific to the EAS.
-     */
+    /// Authentication-service API key used by the EAS.
     pub api_key: String,
 }
 
-/**
- * Authentication Service Report Message
- *
- * Note that the protocol description in voter-authentication-spec.md
- * provides a tentative JSON format but the precise format will depend
- * on the Authentication Service provider. Hence, we abstract biographical
- * data into a single String whose precise format we leave unspecified.
- * Also, we use a single boolean to determine whether authentication
- * has been carried out by the voter and was successful.
- */
+/// Authentication Service report message.
+///
+/// The protocol spec gives a tentative JSON format, but the exact payload
+/// depends on the Authentication Service provider. Biographical data is
+/// therefore represented as an opaque `String`.
 #[derive(Debug, Clone)]
 pub struct AuthServiceReportMsg {
-    /**
-     * Token to be used by the client to start an authentication session.
-     */
+    /// Token associated with the authentication session.
     pub token: String,
 
-    /**
-     * The session ID used in the Authentication Service Query Message.
-     */
+    /// Session ID used in the authentication-service query.
     pub session_id: String,
 
-    /**
-     * Biographical information associated with the authenticated voter.
-     *
-     * May be [`None`] if [`AuthServiceReportMsg::authenticated`] is false.
-     */
+    /// Biographical information associated with the authenticated voter.
+    ///
+    /// May be [`None`] if [`AuthServiceReportMsg::authenticated`] is `false`.
     pub biographical_info: Option<String>,
 
-    /**
-     * Determines if the user has successfully authenticated.
-     */
+    /// Whether the user successfully authenticated.
     pub authenticated: bool,
 }
 
-// Enumeration of possible Authentication Service messages
+/// Enumeration of possible Authentication Service messages.
 #[derive(Debug, Clone)]
-pub enum AuthServiceMessage {
+pub enum AuthServiceMsg {
+    /// Initiate an authentication request.
     InitAuthReq(InitAuthReqMsg),
+    /// Return an authentication token and session ID.
     TokenReturn(TokenReturnMsg),
+    /// Query status of an authentication session.
     AuthServiceQuery(AuthServiceQueryMsg),
+    /// Report authentication status and optional biographical data.
     AuthServiceReport(AuthServiceReportMsg),
 }

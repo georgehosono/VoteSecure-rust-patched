@@ -4,6 +4,7 @@
 
 //! Protocol mixing phase
 
+/// Ascent inference rules for the mixing phase.
 pub(crate) mod infer {
 
     ascent::ascent_source! { mix_infer:
@@ -281,6 +282,7 @@ pub(crate) mod infer {
     }
 }
 
+/// Stateright model and execution harness for mixing rules.
 pub(crate) mod stateright {
 
     use stateright::{Model, Property};
@@ -308,11 +310,13 @@ pub(crate) mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::mix::infer::mix_infer);
         }
 
+        /// Create a fresh Ascent program for mixing inference tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
+    /// Ascent execution rules used by mixing Stateright tests.
     pub(crate) mod execute {
 
         ascent::ascent_source! { mix_execute:
@@ -342,14 +346,17 @@ pub(crate) mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::mix::stateright::execute::mix_execute);
         }
 
+        /// Create a fresh Ascent program for mixing execution tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
+    /// Helper stubs used by mixing execution tests.
     pub(crate) mod execute_functions {
         use crate::trustee_protocols::trustee_application::ascent_logic::types::*;
 
+        /// Deterministic mix output hash stub.
         pub(crate) fn mix_stub(
             cfg: CfgHash,
             _pk: PublicKeyHash,
@@ -359,24 +366,29 @@ pub(crate) mod stateright {
             cfg
         }
 
+        /// Deterministic mix signature result stub.
         pub(crate) fn mix_signature_stub(_trustee: usize) -> bool {
             true
         }
 
+        /// Deterministic chain signature result stub.
         pub(crate) fn chain_signature_stub(_trustee: usize) -> bool {
             true
         }
     }
 
+    /// Stateright harness for exploring mixing state transitions.
     pub(crate) struct Harness<C: Context, const W: usize, const T: usize, const P: usize> {
         phantom_c: PhantomData<C>,
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> Harness<C, W, T, P> {
+        /// Create a new mixing harness.
         pub(crate) fn new() -> Self {
             Self {
                 phantom_c: PhantomData,
             }
         }
+        /// Create the initial hash board for mixing model checking.
         pub(crate) fn get_bb() -> HashBoard<C, W, T, P> {
             let mut ret = dkg::stateright::Harness::get_bb();
 

@@ -2,13 +2,24 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
+//! State handlers and boomerang-dispatch wrappers for the Trustee
+//! Administration Server (TAS) state machine.
+
+/// Handler for the state awaiting decrypted ballots.
 pub mod awaiting_decrypted_ballots;
+/// Handler for the state awaiting ElGamal cryptogram messages.
 pub mod awaiting_egcryptograms;
+/// Handler for the state awaiting election public key messages.
 pub mod awaiting_election_pk;
+/// Handler for the state awaiting partial decryptions.
 pub mod awaiting_partial_decryptions;
+/// Handler for the state awaiting setup messages.
 pub mod awaiting_setup;
+/// Handler for the state awaiting key-share messages.
 pub mod awaiting_shares;
+/// Handler for the terminal failed state.
 pub mod failed;
+/// Handler for the idle state.
 pub mod idle;
 
 use crate::trustee_protocols::trustee_messages::{
@@ -23,30 +34,39 @@ use custom_warning_macro as custom_warning;
 use enum_dispatch::enum_dispatch;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the idle TAS state.
 pub(crate) struct Idle;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting setup messages.
 pub(crate) struct AwaitingSetupMsgs;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting key share messages.
 pub(crate) struct AwaitingKeySharesMsgs;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting election public key messages.
 pub(crate) struct AwaitingElectionPublicKeyMsgs;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting ElGamal cryptogram messages.
 pub(crate) struct AwaitingEGCryptogramsMsgs;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting partial decryptions.
 pub(crate) struct AwaitingPartialDecryptions;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the state awaiting decrypted ballots.
 pub(crate) struct AwaitingDecryptedBallots;
 
 #[derive(Debug, Clone, Copy)]
+/// Marker type for the terminal failed TAS state.
 pub(crate) struct Failed;
 
 #[enum_dispatch]
+/// State-specific behavior for TAS input handling.
 pub(crate) trait TASStateHandler {
     /// Handle an unhandled combination of state and input; this
     /// results in an "invalid input" response, but does not stop
@@ -250,7 +270,10 @@ pub(crate) trait TASStateHandler {
 }
 
 #[enum_dispatch]
+/// Dispatch abstraction from concrete input wrappers to TAS state handlers.
 pub(crate) trait TASBoomerang {
+    /// Dispatch this input to the current TAS state handler and return
+    /// `(new_state, output, posted_update)`.
     fn boomerang(
         &self,
         actor: &mut TASActor,
@@ -262,6 +285,7 @@ pub(crate) trait TASBoomerang {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Command wrapper: start the setup subprotocol.
 pub struct StartSetup;
 impl TASBoomerang for StartSetup {
     fn boomerang(
@@ -277,6 +301,7 @@ impl TASBoomerang for StartSetup {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Command wrapper: start the key-generation subprotocol.
 pub struct StartKeyGen;
 impl TASBoomerang for StartKeyGen {
     fn boomerang(
@@ -292,6 +317,7 @@ impl TASBoomerang for StartKeyGen {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Command wrapper: start mixing/decryption with provided parameters.
 pub struct StartMixing(pub MixingParameters);
 impl TASBoomerang for StartMixing {
     fn boomerang(
@@ -307,6 +333,7 @@ impl TASBoomerang for StartMixing {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Command wrapper: request a checkpoint of the current TAS state.
 pub struct GetCheckpoint;
 impl TASBoomerang for GetCheckpoint {
     fn boomerang(
@@ -322,6 +349,7 @@ impl TASBoomerang for GetCheckpoint {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Command wrapper: stop the currently running protocol.
 pub struct Stop;
 impl TASBoomerang for Stop {
     fn boomerang(

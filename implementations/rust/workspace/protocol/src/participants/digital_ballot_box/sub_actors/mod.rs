@@ -9,6 +9,9 @@
 //! - `casting` - Ballot casting protocol
 //! - `checking` - Ballot checking protocol (forwarding between BCA and VA)
 
+/// Ballot casting sub-actor.
 pub mod casting;
+/// Ballot checking sub-actor.
 pub mod checking;
+/// Ballot submission sub-actor.
 pub mod submission;

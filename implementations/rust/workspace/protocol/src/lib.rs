@@ -4,12 +4,12 @@
 
 //! The core library for the VoteSecure project.
 //!
-//! This library provides a state machine implementation of the e-voting protocol
-//! for the on-device Voting Application. It is designed to be integrated into
-//! a host application that will provide the networking and user interface layers.
+//! This library provides state machine implementations of the e-voting protocol
+//! for all participants. It is designed to be integrated into host applications
+//! that will provide the necessary networking and user interface layers.
 //!
-//! The primary entry point is the `TopLevelActor`, which manages the state
-//! for all subprotocols.
+//! The primary entry point for each participant is a top-level actor, which
+//! manages the state for all that participant's subprotocols.
 
 // Only necessary for custom_warning_macro
 #![feature(stmt_expr_attributes)]
@@ -19,7 +19,8 @@
 // --- Public Modules ---
 // These modules contain the data structures that are passed to and from the actor.
 
-// Disable unused imports warning as the cryptography utils are used by the Vserializable macro but clippy can't figure that out.
+// Disable unused imports warning as the cryptography utils are used by the VSerializable macro
+// but clippy can't figure that out.
 #[allow(unused_imports)]
 use ::cryptography::utils;
 
@@ -39,32 +40,7 @@ pub mod participants;
 pub mod trustee_protocols;
 
 // --- Public API Exports ---
-// Re-export the most important types for convenient access by the library user.
-
-pub use elections::Ballot;
-
-pub use participants::voting_application::{
-    sub_actors::{
-        authentication::AuthenticationInput, casting::CastingInput, checking::CheckingInput,
-        submission::SubmissionInput,
-    },
-    top_level_actor::{
-        // The unified input type for the actor.
-        ActorInput,
-        // Specific success/outcome structures for the application to handle.
-        BallotCastingSuccess,
-        BallotCheckOutcome,
-        BallotSubmissionSuccess,
-        // The enums that make up the `ActorInput`.
-        Command,
-        // The input type for subprotocols
-        SubprotocolInput,
-        // The unified result type from the actor - now it's SubprotocolOutput!
-        SubprotocolOutput,
-        // The main actor struct.
-        TopLevelActor,
-        VoterAuthenticationResult,
-    },
-};
+// Re-export important types for convenient access by the library user.
 
 pub use custom_warning_macro::warning;
+pub use elections::Ballot;

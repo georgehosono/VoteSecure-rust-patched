@@ -20,45 +20,53 @@ use crate::cryptography::{SigningKey, verify_signature};
 use crate::elections::{BallotTracker, ElectionHash};
 use crate::messages::{
     CheckReqMsg, FwdCheckReqMsg, FwdCheckReqMsgData, FwdRandomizerMsg, FwdRandomizerMsgData,
-    ProtocolMessage, RandomizerMsg,
+    ProtocolMsg, RandomizerMsg,
 };
 use crate::participants::digital_ballot_box::{bulletin_board::BulletinBoard, storage::DBBStorage};
 use cryptography::utils::serialization::VSerializable;
 
-// --- I/O Types ---
-
+/// Inputs accepted by the checking sub-actor.
 #[derive(Debug, Clone)]
 pub enum CheckingInput {
+    /// A protocol message received over the network.
     NetworkMessage {
         connection_id: u64,
-        message: ProtocolMessage,
+        message: ProtocolMsg,
     },
+    /// The host supplied the VA connection ID to use.
     VAConnectionProvided(u64),
 }
 
+/// Outputs produced by the checking sub-actor.
 #[derive(Debug, Clone)]
 pub enum CheckingOutput {
+    /// Send a protocol message on the given connection.
     SendMessage {
         connection_id: u64,
-        message: ProtocolMessage,
+        message: ProtocolMsg,
     },
+    /// Ask the host for the VA connection associated with this ballot.
     RequestVAConnection(BallotTracker),
+    /// Ballot checking completed successfully.
     Success,
+    /// Ballot checking failed with an error message.
     Failure(String),
 }
 
-// --- State ---
-
+/// Checking sub-actor states.
 #[derive(Debug, Clone, PartialEq)]
 pub enum CheckingState {
+    /// Waiting for the incoming check request.
     AwaitingCheckRequest,
+    /// Waiting for the host to provide the VA connection ID.
     AwaitingVAConnection,
+    /// Waiting for randomizers from the VA.
     AwaitingRandomizers,
+    /// Protocol execution is complete.
     Complete,
 }
 
-// --- Actor ---
-
+/// Ballot checking sub-actor for the DBB.
 #[derive(Clone, Debug)]
 pub struct CheckingActor {
     bca_connection_id: u64,
@@ -71,6 +79,15 @@ pub struct CheckingActor {
 }
 
 impl CheckingActor {
+    /// Create a new checking sub-actor.
+    ///
+    /// # Arguments
+    /// * `bca_connection_id` - The connection ID for the BCA that initiated this check.
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_signing_key` - The DBB's signing key for signing forwarded messages.
+    ///
+    /// # Returns
+    /// A new `CheckingActor` in the `AwaitingCheckRequest` state.
     pub fn new(
         bca_connection_id: u64,
         election_hash: ElectionHash,
@@ -86,10 +103,23 @@ impl CheckingActor {
         }
     }
 
+    /// Get the current checking state.
+    ///
+    /// # Returns
+    /// A clone of the current `CheckingState`.
     pub fn get_state(&self) -> CheckingState {
         self.state.clone()
     }
 
+    /// Process an input for the checking subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    /// * `storage` - Reference to the DBB storage.
+    /// * `bulletin_board` - Reference to the bulletin board.
+    ///
+    /// # Returns
+    /// `Ok(output)` describing the result, or `Err(msg)` if an error occurs.
     pub fn process_input<S: DBBStorage, B: BulletinBoard>(
         &mut self,
         input: CheckingInput,
@@ -113,15 +143,15 @@ impl CheckingActor {
 
     fn handle_network_message<S: DBBStorage, B: BulletinBoard>(
         &mut self,
-        message: ProtocolMessage,
+        message: ProtocolMsg,
         storage: &S,
         bulletin_board: &B,
     ) -> Result<CheckingOutput, String> {
         match message {
-            ProtocolMessage::CheckReq(check_req) => {
+            ProtocolMsg::CheckReq(check_req) => {
                 self.handle_check_request(check_req, bulletin_board)
             }
-            ProtocolMessage::Randomizer(randomizer) => {
+            ProtocolMsg::Randomizer(randomizer) => {
                 self.handle_randomizer_message(randomizer, storage, bulletin_board)
             }
             _ => Err(format!(
@@ -172,7 +202,7 @@ impl CheckingActor {
         self.state = CheckingState::AwaitingRandomizers;
         Ok(CheckingOutput::SendMessage {
             connection_id: va_conn_id,
-            message: ProtocolMessage::FwdCheckReq(fwd_check_req),
+            message: ProtocolMsg::FwdCheckReq(fwd_check_req),
         })
     }
 
@@ -195,7 +225,7 @@ impl CheckingActor {
         self.state = CheckingState::Complete;
         Ok(CheckingOutput::SendMessage {
             connection_id: self.bca_connection_id,
-            message: ProtocolMessage::FwdRandomizer(fwd_randomizer),
+            message: ProtocolMsg::FwdRandomizer(fwd_randomizer),
         })
     }
 
@@ -556,7 +586,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req.clone()),
+                message: ProtocolMsg::CheckReq(check_req.clone()),
             },
             &storage,
             &bulletin_board,
@@ -584,7 +614,7 @@ mod tests {
                 message,
             } => {
                 assert_eq!(connection_id, 2);
-                assert!(matches!(message, ProtocolMessage::FwdCheckReq(_)));
+                assert!(matches!(message, ProtocolMsg::FwdCheckReq(_)));
             }
             _ => panic!("Expected SendMessage with FwdCheckReq"),
         }
@@ -606,7 +636,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 2,
-                message: ProtocolMessage::Randomizer(randomizer),
+                message: ProtocolMsg::Randomizer(randomizer),
             },
             &storage,
             &bulletin_board,
@@ -619,7 +649,7 @@ mod tests {
                 message,
             } => {
                 assert_eq!(connection_id, 1); // BCA connection
-                assert!(matches!(message, ProtocolMessage::FwdRandomizer(_)));
+                assert!(matches!(message, ProtocolMsg::FwdRandomizer(_)));
             }
             _ => panic!("Expected SendMessage with FwdRandomizer"),
         }
@@ -717,7 +747,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req.clone()),
+                message: ProtocolMsg::CheckReq(check_req.clone()),
             },
             &storage,
             &bulletin_board,
@@ -758,7 +788,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req),
+                message: ProtocolMsg::CheckReq(check_req),
             },
             &storage,
             &bulletin_board,
@@ -794,7 +824,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req),
+                message: ProtocolMsg::CheckReq(check_req),
             },
             &storage,
             &bulletin_board,
@@ -871,7 +901,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req),
+                message: ProtocolMsg::CheckReq(check_req),
             },
             &storage,
             &bulletin_board,
@@ -948,7 +978,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req),
+                message: ProtocolMsg::CheckReq(check_req),
             },
             &storage,
             &bulletin_board,
@@ -1047,7 +1077,7 @@ mod tests {
             .process_input(
                 CheckingInput::NetworkMessage {
                     connection_id: 1,
-                    message: ProtocolMessage::CheckReq(check_req.clone()),
+                    message: ProtocolMsg::CheckReq(check_req.clone()),
                 },
                 &storage,
                 &bulletin_board,
@@ -1079,7 +1109,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 2,
-                message: ProtocolMessage::Randomizer(randomizer),
+                message: ProtocolMsg::Randomizer(randomizer),
             },
             &storage,
             &bulletin_board,
@@ -1178,7 +1208,7 @@ mod tests {
             .process_input(
                 CheckingInput::NetworkMessage {
                     connection_id: 1,
-                    message: ProtocolMessage::CheckReq(check_req.clone()),
+                    message: ProtocolMsg::CheckReq(check_req.clone()),
                 },
                 &storage,
                 &bulletin_board,
@@ -1216,7 +1246,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 2,
-                message: ProtocolMessage::Randomizer(randomizer),
+                message: ProtocolMsg::Randomizer(randomizer),
             },
             &storage,
             &bulletin_board,
@@ -1284,7 +1314,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 1,
-                message: ProtocolMessage::CheckReq(check_req),
+                message: ProtocolMsg::CheckReq(check_req),
             },
             &storage,
             &bulletin_board,
@@ -1383,7 +1413,7 @@ mod tests {
             .process_input(
                 CheckingInput::NetworkMessage {
                     connection_id: 1,
-                    message: ProtocolMessage::CheckReq(check_req.clone()),
+                    message: ProtocolMsg::CheckReq(check_req.clone()),
                 },
                 &storage,
                 &bulletin_board,
@@ -1412,7 +1442,7 @@ mod tests {
         let result = actor.process_input(
             CheckingInput::NetworkMessage {
                 connection_id: 2,
-                message: ProtocolMessage::Randomizer(randomizer),
+                message: ProtocolMsg::Randomizer(randomizer),
             },
             &storage,
             &bulletin_board,

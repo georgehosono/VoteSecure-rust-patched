@@ -2,16 +2,18 @@
 // Copyright 2025-26 Free & Fair
 // See LICENSE.md for details
 
-// Note that the Ballot Check Application (BCA) does not interact with the
-// Voter Application (VA) directly but uses the Digital Ballot Box (DBB)
-// as intermediary to talk to the Voter Application. There is really only
-// one sub-actor behavior, corresponding to the execution of the ballot
-// check protocol for a particular submitted ballot. While the DBB has to
-// deal with concurrent requests and responses from the BCA and VA, the
-// BCA itself performs ballot checking in a strictly sequential manner.
+//! Top-level actor for the Ballot Check Application.
+//!
+//! Note that the Ballot Check Application (BCA) does not interact with the
+//! Voter Application (VA) directly but uses the Digital Ballot Box (DBB)
+//! as intermediary to talk to the Voter Application. There is really only
+//! one sub-actor behavior, corresponding to the execution of the ballot
+//! check protocol for a particular submitted ballot. While the DBB has to
+//! deal with concurrent requests and responses from the BCA and VA, the
+//! BCA itself performs ballot checking in a strictly sequential manner.
 
-// Currently ignored for code simplicity until performance data is analyzed.
-// @todo Consider boxing structs in large enum variants to improve performance.
+// TODO: consider boxing structs in large enum variants to improve performance
+// currently ignored for code simplicity until performance data is analyzed.
 #![allow(clippy::large_enum_variant)]
 
 use super::sub_actors::ballot_check::BallotCheckActor;
@@ -28,54 +30,104 @@ use crate::messages::SignedBallotMsg;
 
 use cryptography::utils::serialization::VSerializable;
 
-// --- I/O Types ---
+// =============================================================================
+// Commands and I/O Types
+// =============================================================================
 
+/// Commands that can be sent to the Ballot Check Application.
 #[derive(Debug, Clone)]
 pub enum Command {
+    /// Abort the currently active subprotocol and return to the idle state.
     AbortSubprotocol,
+
+    /// Start a ballot check for a submitted ballot.
+    ///
+    /// The BCA verifies the signed ballot and then runs the ballot check
+    /// sub-actor to completion before accepting another request.
     StartBallotCheck(BallotTracker, SignedBallotMsg),
 }
 
-/// Direct subprotocol inputs - no generic conversion needed
+/// Direct subprotocol inputs - no generic conversion needed.
 #[derive(Debug, Clone)]
 pub enum SubprotocolInput {
+    /// Input for the ballot check sub-actor.
     BallotCheck(BallotCheckInput),
 }
 
+/// Input to the Ballot Check Application actor.
 #[derive(Debug, Clone)]
 pub enum ActorInput {
+    /// A command from the host application.
     Command(Command),
+
+    /// Input forwarded to the currently active sub-actor.
     SubprotocolInput(SubprotocolInput),
 }
 
-// --- Direct Subprotocol Output ---
+// =============================================================================
+// Output Types
+// =============================================================================
 
+/// Output from the Ballot Check Application actor's active subprotocol.
 #[derive(Debug, Clone)]
 pub enum SubprotocolOutput {
+    /// Output from the ballot check sub-actor.
     BallotCheck(BallotCheckOutput),
 }
 
-// --- Active Subprotocol Enum ---
+// =============================================================================
+// Session Management Types
+// =============================================================================
 
+/// Tracks which subprotocol the BCA is currently executing.
+///
+/// The BCA operates sequentially: it is either idle or running a single
+/// ballot check. No concurrent sessions are supported.
 #[derive(Clone, Debug, Default)]
 pub enum ActiveSubprotocol {
+    /// No subprotocol is currently active.
     #[default]
     Idle,
+
+    /// A ballot check subprotocol is in progress.
     BallotCheck(BallotCheckActor),
 }
 
-// --- Top-Level Actor ---
+// =============================================================================
+// Top-Level Actor
+// =============================================================================
 
+/// The top-level Ballot Check Application actor.
+///
+/// This actor manages the lifecycle of a single ballot check subprotocol.
+/// It verifies the signed ballot supplied by the host, delegates to the
+/// [`BallotCheckActor`] sub-actor, and resets to idle once the check
+/// completes (successfully or not).
 #[derive(Clone, Debug)]
-pub struct TopLevelActor {
+pub struct BallotCheckApplicationActor {
+    /// The currently active subprotocol (or idle if none is running).
     active_subprotocol: ActiveSubprotocol,
+
+    /// The election hash for this election.
     election_hash: ElectionHash,
+
+    /// The election public key used to verify encrypted ballots.
     election_public_key: ElectionKey,
+
+    /// The DBB's verifying key used to validate signed ballots.
     dbb_verifying_key: VerifyingKey,
 }
 
-impl TopLevelActor {
-    /// Creates a new top-level actor for the BCA.
+impl BallotCheckApplicationActor {
+    /// Create a new Ballot Check Application actor.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election hash for this election
+    /// * `election_public_key` - The election public key
+    /// * `dbb_verifying_key` - The DBB's verifying key for validating signed ballots
+    ///
+    /// # Returns
+    /// A new `BallotCheckApplicationActor` in the `Idle` state.
     pub fn new(
         election_hash: ElectionHash,
         election_public_key: ElectionKey,
@@ -89,7 +141,17 @@ impl TopLevelActor {
         }
     }
 
-    /// Processes an input to the top-level actor.
+    /// Process an input to the Ballot Check Application.
+    ///
+    /// This is the main entry point for all interactions with the BCA.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process
+    ///
+    /// # Returns
+    /// * `Ok(Some(output))` - Subprotocol output produced by processing the input
+    /// * `Ok(None)` - The input was handled but produced no subprotocol output
+    /// * `Err(msg)` - If an error occurs
     pub fn process_input(
         &mut self,
         input: ActorInput,
@@ -174,15 +236,20 @@ impl TopLevelActor {
         }
     }
 
-    /*******************************/
-    /* Signed Ballot Message Check */
-    /*******************************/
-
-    // Though checking the ballot obtained from the Public Bulletin Board (PBB)
-    // is not explicitly required by the protocol, we shall do it nonetheless,
-    // at least carrying out some basic integrity checks. If any of these fail,
-    // the protocol immediately bails out with an error during execution of the
-    // [`Command::StartBallotCheck`] command.
+    /// Validate a signed ballot before handing it to the ballot check sub-actor.
+    ///
+    /// Though checking the ballot obtained from the Public Bulletin Board (PBB)
+    /// is not explicitly required by the protocol, we do it anyway to perform
+    /// basic integrity checks. If any of these fail the protocol immediately
+    /// bails out with an error during execution of the
+    /// [`Command::StartBallotCheck`] command.
+    ///
+    /// # Arguments
+    /// * `msg` - The signed ballot message to validate
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the ballot passes all integrity checks
+    /// * `Err(msg)` - If the ballot fails any integrity check
     pub fn check_signed_ballot(&self, msg: &SignedBallotMsg) -> Result<(), String> {
         if verify_signature(
             &msg.data.ser(),

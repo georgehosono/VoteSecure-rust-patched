@@ -2,6 +2,13 @@
 // Copyright 2025-26 Free & Fair
 // See LICENSE.md for details
 
+//! Top-level actor for the Voting Application.
+//!
+//! This actor manages the voter's session lifecycle, sequencing the
+//! authentication, submission, casting, and ballot check subprotocols.
+//! It also maintains the cross-subprotocol state (session keys, pseudonym,
+//! ballot tracker, and randomizers) that must persist between steps.
+
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
 #![allow(clippy::large_enum_variant)]
@@ -15,39 +22,79 @@ use super::sub_actors::{
 use crate::cryptography::{ElectionKey, RandomizersStruct, SigningKey, VerifyingKey};
 use crate::elections::{Ballot, BallotStyle, BallotTracker, ElectionHash, VoterPseudonym};
 
-// --- I/O Types ---
+// =============================================================================
+// Commands and I/O Types
+// =============================================================================
 
+/// Commands that can be sent to the Voting Application.
 #[derive(Debug, Clone)]
 pub enum Command {
+    /// Reset the actor to the idle state, discarding any active subprotocol.
     SetIdle,
+
+    /// Begin the voter authentication subprotocol.
     StartAuthentication,
+
+    /// Begin the ballot submission subprotocol with the given ballot.
+    ///
+    /// Requires that authentication has already completed successfully.
     StartSubmission(Ballot),
+
+    /// Begin the ballot casting subprotocol.
+    ///
+    /// Requires that submission has already completed successfully.
     StartCasting,
+
+    /// Begin the ballot checking subprotocol.
+    ///
+    /// Requires that submission has already completed successfully so that
+    /// the ballot tracker and randomizers are available.
     StartBallotCheck,
 }
 
-/// Direct subprotocol inputs - no generic conversion needed
+/// Direct subprotocol inputs — no generic conversion needed.
 #[derive(Debug, Clone)]
 pub enum SubprotocolInput {
+    /// Input for the authentication sub-actor.
     Authentication(AuthenticationInput),
+
+    /// Input for the ballot submission sub-actor.
     Submission(SubmissionInput),
+
+    /// Input for the ballot casting sub-actor.
     Casting(CastingInput),
+
+    /// Input for the ballot checking sub-actor.
     Checking(CheckingInput),
 }
 
+/// Input to the Voting Application actor.
 #[derive(Debug, Clone)]
 pub enum ActorInput {
+    /// A command from the host application.
     Command(Command),
+
+    /// Input forwarded to the currently active sub-actor.
     SubprotocolInput(SubprotocolInput),
 }
 
-// --- Direct Subprotocol Output ---
+// =============================================================================
+// Output Types
+// =============================================================================
 
+/// Output from the Voting Application actor's active subprotocol.
 #[derive(Debug, Clone)]
 pub enum SubprotocolOutput {
+    /// Output from the authentication sub-actor.
     Authentication(AuthenticationOutput),
+
+    /// Output from the ballot submission sub-actor.
     Submission(SubmissionOutput),
+
+    /// Output from the ballot casting sub-actor.
     Casting(CastingOutput),
+
+    /// Output from the ballot checking sub-actor.
     Checking(CheckingOutput),
 }
 
@@ -57,36 +104,90 @@ pub use super::sub_actors::{
     checking::BallotCheckOutcome, submission::BallotSubmissionSuccess,
 };
 
-// --- Active Subprotocol Enum ---
+// =============================================================================
+// Session Management Types
+// =============================================================================
 
+/// Tracks which subprotocol the Voting Application is currently executing.
+///
+/// The VA operates sequentially: at most one subprotocol is active at a time.
 #[derive(Clone, Debug)]
 pub enum ActiveSubprotocol {
+    /// No subprotocol is currently active.
     Idle,
+
+    /// The voter authentication subprotocol is in progress.
     Authentication(AuthenticationActor),
+
+    /// The ballot submission subprotocol is in progress.
     Submission(SubmissionActor),
+
+    /// The ballot casting subprotocol is in progress.
     Casting(CastingActor),
+
+    /// The ballot checking subprotocol is in progress.
     Checking(CheckingActor),
 }
 
-// --- Top-Level Actor ---
+// =============================================================================
+// Top-Level Actor
+// =============================================================================
 
+/// The top-level Voting Application actor.
+///
+/// This actor sequences the voter's protocol steps (authentication,
+/// submission, casting, ballot check) and carries cross-step state
+/// — session keys, voter pseudonym, ballot tracker, and randomizers —
+/// between subprotocols.
 #[derive(Clone, Debug)]
-pub struct TopLevelActor {
+pub struct VotingApplicationActor {
+    /// The currently active subprotocol (or idle if none is running).
     active_subprotocol: ActiveSubprotocol,
+
+    // --- Configuration ---
+    /// The election hash for this election.
     election_hash: ElectionHash,
+
+    /// The EAS's verifying key for validating authorization messages.
     eas_verifying_key: VerifyingKey,
+
+    /// The DBB's verifying key for validating DBB-signed messages.
     dbb_verifying_key: VerifyingKey,
+
+    /// The election public key used to encrypt the ballot.
     election_public_key: ElectionKey,
+
+    // --- Cross-Subprotocol Session State ---
+    /// The voter's ephemeral session signing key, set after successful authentication.
     voter_session_signing_key: Option<SigningKey>,
+
+    /// The voter's ephemeral session verifying key, set after successful authentication.
     voter_session_verifying_key: Option<VerifyingKey>,
+
+    /// The voter's pseudonym, set after successful authentication.
     voter_pseudonym: Option<VoterPseudonym>,
+
+    /// The voter's ballot style, set after successful authentication.
     voter_ballot_style: Option<BallotStyle>,
+
+    /// The ballot tracker returned by the DBB after successful submission.
     ballot_tracker: Option<BallotTracker>,
+
+    /// The encryption randomizers from ballot submission, needed for ballot checking.
     ballot_randomizers: Option<RandomizersStruct>,
 }
 
-impl TopLevelActor {
-    /// Creates a new `TopLevelActor`.
+impl VotingApplicationActor {
+    /// Create a new [`VotingApplicationActor`].
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election hash for this election
+    /// * `eas_verifying_key` - The EAS's verifying key for authorization messages
+    /// * `dbb_verifying_key` - The DBB's verifying key for signed messages
+    /// * `election_public_key` - The election public key for ballot encryption
+    ///
+    /// # Returns
+    /// A new `VotingApplicationActor` in the `Idle` state.
     pub fn new(
         election_hash: ElectionHash,
         eas_verifying_key: VerifyingKey,
@@ -108,6 +209,16 @@ impl TopLevelActor {
         }
     }
 
+    /// Process an input to the Voting Application.
+    ///
+    /// This is the main entry point for all interactions with the VA.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process
+    ///
+    /// # Returns
+    /// * `Ok(output)` - The output from processing the input
+    /// * `Err(msg)` - If an error occurs
     pub fn process_input(&mut self, input: ActorInput) -> Result<SubprotocolOutput, String> {
         match input {
             ActorInput::Command(command) => self.handle_command(command),
@@ -117,6 +228,7 @@ impl TopLevelActor {
         }
     }
 
+    /// Handle a command from the host application.
     fn handle_command(&mut self, command: Command) -> Result<SubprotocolOutput, String> {
         match command {
             Command::SetIdle => {
@@ -249,6 +361,7 @@ impl TopLevelActor {
         }
     }
 
+    /// Forward a subprotocol input to the currently active sub-actor.
     fn handle_subprotocol_input(
         &mut self,
         subprotocol_input: SubprotocolInput,
@@ -290,7 +403,7 @@ impl TopLevelActor {
         }
     }
 
-    /// Handle state updates and transitions based on subprotocol outputs
+    /// Handle state updates and transitions based on subprotocol outputs.
     fn handle_state_updates(&mut self, output: &SubprotocolOutput) {
         match output {
             SubprotocolOutput::Authentication(AuthenticationOutput::Success(result)) => {
@@ -340,21 +453,21 @@ impl TopLevelActor {
         }
     }
 
-    // Getter methods for integration testing
+    // --- Getter Methods (Integration Testing) ---
 
-    /// Returns the voter pseudonym if authentication completed successfully
+    /// Returns the voter pseudonym if authentication completed successfully.
     #[cfg(test)]
     pub(crate) fn voter_pseudonym(&self) -> Option<&VoterPseudonym> {
         self.voter_pseudonym.as_ref()
     }
 
-    /// Returns the ballot tracker if a ballot was successfully submitted
+    /// Returns the ballot tracker if a ballot was successfully submitted.
     #[cfg(test)]
     pub(crate) fn ballot_tracker(&self) -> Option<&BallotTracker> {
         self.ballot_tracker.as_ref()
     }
 
-    /// Returns the ballot randomizers if a ballot was successfully submitted
+    /// Returns the ballot randomizers if a ballot was successfully submitted.
     #[cfg(test)]
     pub(crate) fn ballot_randomizers(&self) -> Option<&RandomizersStruct> {
         self.ballot_randomizers.as_ref()

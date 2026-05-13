@@ -12,11 +12,19 @@ use std::hash::Hash;
 const MAX_TRUSTEES: usize = 24;
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
+/// Fixed-capacity set keyed by trustee index, enforcing uniqueness invariants.
 pub struct AccumulatorSet<T> {
     values: [Option<T>; MAX_TRUSTEES],
     value_set: BTreeSet<T>,
 }
 impl<T: Ord + std::fmt::Debug + Clone> AccumulatorSet<T> {
+    /// Create an accumulator initialized with the first trustee value.
+    ///
+    /// # Arguments
+    /// * `init` - The initial value to insert for trustee index `1`.
+    ///
+    /// # Returns
+    /// A new `AccumulatorSet` with `init` stored at trustee index `1`.
     pub fn new(init: T) -> Self {
         AccumulatorSet {
             values: std::array::from_fn(|_| None),
@@ -24,6 +32,7 @@ impl<T: Ord + std::fmt::Debug + Clone> AccumulatorSet<T> {
         }
         .add(init, 1)
     }
+    /// Add `rhs` at `index`, panicking if it violates uniqueness constraints.
     pub(crate) fn add(&self, rhs: T, index: TrusteeIndex) -> Self {
         let existing = self.values[index].clone();
         // If the value at the index is already set, is must match the supplied value
@@ -58,6 +67,7 @@ impl<T: Ord + std::fmt::Debug + Clone> AccumulatorSet<T> {
         ret
     }
 
+    /// Extract all present values in trustee index order.
     pub(crate) fn extract(&self) -> Vec<T> {
         let some = self.values.iter().filter(|t| t.is_some());
         some.map(|t| t.clone().expect("t.is_some() == true"))

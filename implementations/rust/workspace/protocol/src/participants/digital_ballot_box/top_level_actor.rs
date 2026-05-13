@@ -22,7 +22,7 @@ use super::sub_actors::{
 
 use crate::cryptography::{ElectionKey, SigningKey, VerifyingKey};
 use crate::elections::{BallotTracker, ElectionHash};
-use crate::messages::{AuthVoterMsg, ProtocolMessage};
+use crate::messages::{AuthVoterMsg, ProtocolMsg};
 use cryptography::utils::serialization::VSerializable;
 
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct DBBIncomingMessage {
     pub connection_id: u64,
-    pub message: ProtocolMessage,
+    pub message: ProtocolMsg,
 }
 
 /// Outgoing message with connection routing information.
@@ -48,7 +48,7 @@ pub struct DBBIncomingMessage {
 #[derive(Debug, Clone)]
 pub struct DBBOutgoingMessage {
     pub connection_id: u64,
-    pub message: ProtocolMessage,
+    pub message: ProtocolMsg,
 }
 
 /// Message from the Election Administration Server.
@@ -176,6 +176,9 @@ pub enum ActiveSession {
 
 impl ActiveSession {
     /// Get the session type.
+    ///
+    /// # Returns
+    /// The `SessionType` variant corresponding to this active session.
     pub fn session_type(&self) -> SessionType {
         match self {
             ActiveSession::Checking(_) => SessionType::Checking,
@@ -183,6 +186,9 @@ impl ActiveSession {
     }
 
     /// Get the session state.
+    ///
+    /// # Returns
+    /// The `SessionState` variant containing the sub-actor's current state.
     pub fn session_state(&self) -> SessionState {
         match self {
             ActiveSession::Checking(actor) => SessionState::Checking(actor.get_state()),
@@ -244,6 +250,9 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     /// * `dbb_verifying_key` - The DBB's verifying key
     /// * `eas_verifying_key` - The EAS's verifying key
     /// * `election_public_key` - The election public key
+    ///
+    /// # Returns
+    /// A new `DigitalBallotBoxActor` with no active sessions.
     pub fn new(
         storage: S,
         bulletin_board: B,
@@ -385,7 +394,7 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     fn route_to_existing_session(
         &mut self,
         connection_id: u64,
-        message: ProtocolMessage,
+        message: ProtocolMsg,
     ) -> Result<ActorOutput, String> {
         // We need to take the session out temporarily to avoid borrow checker issues
         let mut session = self
@@ -423,10 +432,10 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
     fn create_new_session(
         &mut self,
         connection_id: u64,
-        message: ProtocolMessage,
+        message: ProtocolMsg,
     ) -> Result<ActorOutput, String> {
         match &message {
-            ProtocolMessage::SubmitSignedBallot(_) => {
+            ProtocolMsg::SubmitSignedBallot(_) => {
                 // One-shot operation: create actor, process, return result
                 // No session storage needed
                 let mut actor = SubmissionActor::new(
@@ -444,7 +453,7 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                 self.handle_submission_output(connection_id, output)
             }
 
-            ProtocolMessage::CastReq(_) => {
+            ProtocolMsg::CastReq(_) => {
                 // One-shot operation: create actor, process, return result
                 // No session storage needed
                 let mut actor = CastingActor::new(self.election_hash, self.dbb_signing_key.clone());
@@ -458,7 +467,7 @@ impl<S: DBBStorage, B: BulletinBoard> DigitalBallotBoxActor<S, B> {
                 self.handle_casting_output(connection_id, output)
             }
 
-            ProtocolMessage::CheckReq(_) => {
+            ProtocolMsg::CheckReq(_) => {
                 // Multi-step operation: create actor, process, store session if not complete
                 let mut actor = CheckingActor::new(
                     connection_id,

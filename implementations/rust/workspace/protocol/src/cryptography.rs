@@ -26,7 +26,7 @@ pub use cryptography::utils::serialization::{VDeserializable, VSerializable};
 use cryptography::utils::signatures::{SignatureScheme, Signer, Verifier};
 use cryptography::zkp::pleq::PlEqProof;
 
-pub use cryptography::utils::hash::Hasher as OldHasher;
+pub use cryptography::utils::hash::Hasher as HasherTrait;
 pub use cryptography::utils::hash::Hasher256;
 pub use sha3::Digest;
 
@@ -35,30 +35,32 @@ pub use sha3::Digest;
 // =============================================================================
 
 /// Fixed size of ballot serialization for the ballot structure (u16 + u128)
-/// The ballot structure with VSerializable always serializes to exactly 26 bytes
+/// The ballot structure with VSerializable always serializes to exactly 26 bytes.
 pub const PADDED_BYTE_ARRAY_SIZE: usize = 26;
 
 /// Width for ballot ciphertext (determined by PADDED_BYTE_ARRAY_SIZE)
 pub const BALLOT_CIPHERTEXT_WIDTH: usize = PADDED_BYTE_ARRAY_SIZE.div_ceil(30);
 
 /// Width for randomizer ciphertext (number of group elements)
-/// Each scalar encodes to 2 elements, so BALLOT_CIPHERTEXT_WIDTH scalars need BALLOT_CIPHERTEXT_WIDTH * 2 elements
+/// Each scalar encodes to 2 elements, so BALLOT_CIPHERTEXT_WIDTH scalars need BALLOT_CIPHERTEXT_WIDTH * 2 elements.
 pub const RANDOMIZER_CIPHERTEXT_WIDTH: usize = BALLOT_CIPHERTEXT_WIDTH * 2;
 
 // =============================================================================
 // Type Aliases
 // =============================================================================
 
-/// Type alias for the cryptographic context used throughout the system
+/// Type alias for the cryptographic context used throughout the system.
 pub type CryptographyContext = RistrettoCtx;
 
-/// Type aliases for Ed25519 signature types from the cryptography library context
+/// Type aliases for Ed25519 signature types from the cryptography library context.
 pub type SigningKey = <<CryptographyContext as Context>::SignatureScheme as SignatureScheme<
     <CryptographyContext as Context>::Rng,
 >>::Signer;
+/// Ed25519 verifying key type used by the protocol crate.
 pub type VerifyingKey = <<CryptographyContext as Context>::SignatureScheme as SignatureScheme<
     <CryptographyContext as Context>::Rng,
 >>::Verifier;
+/// Ed25519 signature type used by the protocol crate.
 pub type Signature = <<CryptographyContext as Context>::SignatureScheme as SignatureScheme<
     <CryptographyContext as Context>::Rng,
 >>::Signature;
@@ -69,23 +71,28 @@ pub(crate) type Hasher = <CryptographyContext as cryptography::context::Context>
 /// The Hash output type as defined by the cryptography context.
 pub(crate) type CryptographicHash = sha3::digest::Output<Hasher>;
 
-/// Ballot Ciphertext Type (single large fixed-width ciphertext)
+/// Ballot Ciphertext Type (single large fixed-width ciphertext).
 pub type BallotCiphertext = NYCiphertext<CryptographyContext, BALLOT_CIPHERTEXT_WIDTH>;
 
-/// Randomizer Ciphertext Type (for encrypting randomizers using scalar encoding)
+/// Randomizer Ciphertext Type (for encrypting randomizers using scalar encoding).
 pub type RandomizerCiphertext = NYCiphertext<CryptographyContext, RANDOMIZER_CIPHERTEXT_WIDTH>;
 
-/// Election Key Types (Naor-Yung)
+/// Naor-Yung public key type for ballot encryption.
 pub type ElectionKey = NYPublicKey<CryptographyContext>;
+/// Naor–Yung keypair type for ballot encryption.
 pub type ElectionKeyPair = NYKeyPair<CryptographyContext>;
 
-/// Ballot Check Key Types (ElGamal)
-pub type BallotCheckKey = EGKeyPair<CryptographyContext>;
+/// ElGamal public key type used in ballot check randomizer exchange.
 pub type BallotCheckPublicKey = EGPublicKey<CryptographyContext>;
+/// ElGamal keypair type used in ballot check randomizer exchange.
+pub type BallotCheckKey = EGKeyPair<CryptographyContext>;
 
-/// Core Cryptographic Primitives
+/// Randomizer used to encrypt ballot elements, represented as a scalar
+/// in the cryptographic group.
 pub type Randomizer = <CryptographyContext as Context>::Scalar;
+/// Group element type used for encoded ballot selections.
 pub type SelectionElement = <CryptographyContext as Context>::Element;
+/// Proof type attached to ballot cryptograms.
 pub type BallotProof = PlEqProof<CryptographyContext, 2>;
 
 // =============================================================================
@@ -132,18 +139,28 @@ pub struct PseudonymCryptogramPair {
 // Key Generation Functions
 // =============================================================================
 
-/// Generate Naor-Yung election key pair
+/// Generate Naor-Yung election key pair.
+/// # Arguments
+/// * `context` - Context bytes used to seed the key generation.
+/// # Returns
+/// A Result containing the generated ElectionKeyPair or an error message.
 pub fn generate_election_keypair(context: &[u8]) -> Result<ElectionKeyPair, String> {
     ElectionKeyPair::generate(context)
         .map_err(|e| format!("Election key generation failed: {:?}", e))
 }
 
-/// Generate ElGamal ballot check key pair
+/// Generate ElGamal ballot check key pair.
+/// # Returns
+/// The generated BallotCheckKey.
 pub fn generate_ballot_check_keypair() -> BallotCheckKey {
     BallotCheckKey::generate()
 }
 
-/// Generate a new Naor-Yung encryption key pair with context
+/// Generate a new Naor-Yung encryption key pair with context.
+/// # Arguments
+/// * `context` - Context bytes used to seed the key generation.
+/// # Returns
+/// A Result containing the generated ElectionKeyPair or an error message.
 pub fn generate_encryption_keypair(context: &[u8]) -> Result<ElectionKeyPair, String> {
     generate_election_keypair(context)
 }
@@ -152,12 +169,23 @@ pub fn generate_encryption_keypair(context: &[u8]) -> Result<ElectionKeyPair, St
 // Digital Signature Operations
 // =============================================================================
 
-/// Sign arbitrary data using Ed25519
+/// Sign arbitrary data using Ed25519.
+/// # Arguments
+/// * `data` - The data to be signed.
+/// * `signing_key` - The Ed25519 signing key.
+/// # Returns
+/// The computed signature.
 pub fn sign_data(data: &[u8], signing_key: &SigningKey) -> Signature {
     signing_key.sign(data)
 }
 
-/// Verify a signature on arbitrary data using Ed25519
+/// Verify a signature on arbitrary data using Ed25519.
+/// # Arguments
+/// * `data` - The data that was signed.
+/// * `signature` - The signature to verify.
+/// * `verifying_key` - The Ed25519 verifying key.
+/// # Returns
+/// Ok(()) if the signature is valid, Err with a message if invalid.
 pub fn verify_signature(
     data: &[u8],
     signature: &Signature,
@@ -168,7 +196,9 @@ pub fn verify_signature(
         .map_err(|_| "Invalid signature".to_string())
 }
 
-/// Generate a new Ed25519 signature key pair
+/// Generate a new Ed25519 signature key pair.
+/// # Returns
+/// A tuple containing (SigningKey, VerifyingKey).
 pub fn generate_signature_keypair() -> (SigningKey, VerifyingKey) {
     let signing_key = CryptographyContext::gen_signing_key();
     let verifying_key = signing_key.verifying_key();
@@ -179,7 +209,7 @@ pub fn generate_signature_keypair() -> (SigningKey, VerifyingKey) {
 // Ballot Encoding and Decoding
 // =============================================================================
 
-/// Encode a ballot into a fixed-width array of group elements
+/// Encode a ballot into a fixed-width array of group elements.
 ///
 /// # Arguments
 /// * `ballot` - The ballot to encode
@@ -215,7 +245,7 @@ pub fn encode_ballot(
         .map_err(|e| format!("Failed to encode ballot bytes: {:?}", e))
 }
 
-/// Decode a fixed-width array of group elements back into a ballot
+/// Decode a fixed-width array of group elements back into a ballot.
 ///
 /// # Arguments
 /// * `elements` - The array of group elements to decode
@@ -242,7 +272,11 @@ pub fn decode_ballot(
 // Ballot Encryption and Decryption
 // =============================================================================
 
-/// Generate cryptographically secure randomizers for ballot encryption
+/// Generate cryptographically secure randomizers for ballot encryption.
+/// # Arguments
+/// * `width` - The number of randomizers to generate.
+/// # Returns
+/// A vector of cryptographically secure Randomizer values.
 pub fn generate_ballot_randomizers(width: usize) -> Vec<Randomizer> {
     let mut rng = CryptographyContext::get_rng();
     (0..width).map(|_| Randomizer::random(&mut rng)).collect()
@@ -250,6 +284,11 @@ pub fn generate_ballot_randomizers(width: usize) -> Vec<Randomizer> {
 
 /// Return the encryption context derived from an election hash and a
 /// voter pseudonym. This context is used when encrypting/decryption ballots.
+/// # Arguments
+/// * `election_hash` - The hash of the election configuration.
+/// * `voter_pseudonym` - The voter pseudonym used to derive the context.
+/// # Returns
+/// A byte vector containing the combined encryption context.
 pub fn ballot_context(election_hash: &ElectionHash, voter_pseudonym: &VoterPseudonym) -> Vec<u8> {
     let mut context = b"ballot_encryption_".to_vec();
     context.extend_from_slice(election_hash);
@@ -260,6 +299,10 @@ pub fn ballot_context(election_hash: &ElectionHash, voter_pseudonym: &VoterPseud
 
 /// Return the encryption context derived from an election hash.
 /// This context is used in mixing.
+/// # Arguments
+/// * `election_hash` - The hash of the election configuration.
+/// # Returns
+/// A byte vector containing the mixing encryption context.
 pub fn shuffle_context(election_hash: &ElectionHash) -> Vec<u8> {
     let mut context = b"encryption_".to_vec();
     context.extend_from_slice(election_hash);
@@ -268,6 +311,10 @@ pub fn shuffle_context(election_hash: &ElectionHash) -> Vec<u8> {
 }
 
 /// Return the encryption context for augmenting the election public key.
+/// # Arguments
+/// * `election_hash` - The hash of the election configuration.
+/// # Returns
+/// A byte vector containing the public key augmentation context.
 pub fn pk_context(election_hash: &ElectionHash) -> Vec<u8> {
     let mut context = b"pk_augment_".to_vec();
     context.extend_from_slice(election_hash);
@@ -281,7 +328,12 @@ pub fn pk_context(election_hash: &ElectionHash) -> Vec<u8> {
 /// The context is derived from parameters known to both:
 /// - election_hash: known to both from the election setup
 /// - bca_verifying_key: sent by BCA in CheckReqMsg, known to VA
-///   after receiving the request
+///   after receiving the request.
+/// # Arguments
+/// * `election_hash` - The hash of the election configuration.
+/// * `bca_verifying_key` - The ballot check authority's verifying key.
+/// # Returns
+/// A string containing the ballot check encryption context.
 pub fn ballot_check_context(
     election_hash: &ElectionHash,
     bca_verifying_key: &VerifyingKey,
@@ -295,7 +347,14 @@ pub fn ballot_check_context(
     format!("ballot_check;{};{:?}", election_hash_hex, bca_verifying_key)
 }
 
-/// Encrypt a complete ballot and return both the cryptogram and randomizers
+/// Encrypt a complete ballot and return both the cryptogram and randomizers.
+/// # Arguments
+/// * `ballot` - The ballot to encrypt.
+/// * `election_pk` - The election public key for encryption.
+/// * `election_hash` - The hash of the election configuration.
+/// * `voter_pseudonym` - The pseudonym of the voter voting this ballot, used to derive the encryption context.
+/// # Returns
+/// A Result containing the BallotCryptogram and RandomizersStruct used, or an error.
 pub fn encrypt_ballot(
     ballot: Ballot,
     election_pk: &ElectionKey,
@@ -332,7 +391,15 @@ pub fn encrypt_ballot(
     Ok((ballot_cryptogram, randomizers_struct))
 }
 
-/// Decrypt a ballot cryptogram using randomizers and election public key
+/// Decrypt a ballot cryptogram using randomizers and election public key.
+/// # Arguments
+/// * `ballot_cryptogram` - The encrypted ballot.
+/// * `randomizers` - The randomizers used for encryption.
+/// * `election_public_key` - The election public key for decryption.
+/// * `election_hash` - The hash of the election configuration.
+/// * `voter_pseudonym` - The pseudonym of the voter voting this ballot, used to derive the decryption context.
+/// # Returns
+/// A Result containing the decrypted Ballot or an error.
 pub fn decrypt_ballot(
     ballot_cryptogram: &BallotCryptogram,
     randomizers: &RandomizersStruct,
@@ -362,7 +429,14 @@ pub fn decrypt_ballot(
     decode_ballot(&decrypted)
 }
 
-/// Verify a Naor-Yung proof in a ballot ciphertext
+/// Verify a Naor-Yung proof in a ballot ciphertext.
+/// # Arguments
+/// * `ciphertext` - The ballot ciphertext to verify.
+/// * `election_pk` - The election public key.
+/// * `election_hash` - The hash of the election configuration.
+/// * `voter_pseudonym` - The pseudonym of the voter voting this ballot, used to derive the verification context.
+/// # Returns
+/// A Result containing true if the proof is valid, false if invalid, or an error.
 pub fn verify_ciphertext_proof(
     ciphertext: &BallotCiphertext,
     election_pk: &ElectionKey,
@@ -380,8 +454,14 @@ pub fn verify_ciphertext_proof(
 // Randomizer Encryption and Decryption Operations
 // =============================================================================
 
-/// Encrypt complete randomizers structure for transmission to BCA
-/// Encrypts each randomizer using scalar encoding
+/// Encrypt complete randomizers structure for transmission to BCA;
+/// encrypts each randomizer using scalar encoding.
+/// # Arguments
+/// * `randomizers` - The randomizers structure to encrypt.
+/// * `bca_public_key` - The ballot check authority's public key.
+/// * `context_prefix` - The context prefix for encryption.
+/// # Returns
+/// A Result containing the RandomizersCryptogram or an error.
 pub fn encrypt_randomizers(
     randomizers: &RandomizersStruct,
     bca_public_key: &ElectionKey,
@@ -426,7 +506,13 @@ pub fn encrypt_randomizers(
     })
 }
 
-/// Decrypt complete randomizers structure using BCA private key
+/// Decrypt complete randomizers structure using BCA private key.
+/// # Arguments
+/// * `randomizers_cryptogram` - The encrypted randomizers to decrypt.
+/// * `bca_private_key` - The ballot check authority's private key pair.
+/// * `context_prefix` - The context prefix for decryption.
+/// # Returns
+/// A Result containing the decrypted RandomizersStruct or an error.
 pub fn decrypt_randomizers(
     randomizers_cryptogram: &RandomizersCryptogram,
     bca_private_key: &ElectionKeyPair,
@@ -464,9 +550,13 @@ pub fn decrypt_randomizers(
     })
 }
 
-/// Hash a serializable value using the context provided hasher
+/// Hash a serializable value using the context provided hasher.
 ///
 /// The hasher is defined as `<CryptographyContext as cryptography::context::Context>::Hasher`
+/// # Arguments
+/// * `value` - The value to hash.
+/// # Returns
+/// The resulting cryptographic hash.
 pub(crate) fn hash_serializable<T: VSerializable>(value: &T) -> CryptographicHash {
     let bytes = value.ser();
     let mut hasher = Hasher::hasher();
@@ -479,26 +569,44 @@ pub(crate) fn hash_serializable<T: VSerializable>(value: &T) -> CryptographicHas
 // =============================================================================
 
 #[cfg(test)]
+/// Create a deterministic test ballot with a small random seed.
+/// # Returns
+/// A test Ballot with seed 12345.
 pub fn create_test_ballot_small() -> crate::elections::Ballot {
     crate::elections::Ballot::test_ballot(12345)
 }
 
 #[cfg(test)]
+/// Create a deterministic test ballot with a medium random seed.
+/// # Returns
+/// A test Ballot with seed 6789012.
 pub fn create_test_ballot_medium() -> crate::elections::Ballot {
-    crate::elections::Ballot::test_ballot(67890)
+    crate::elections::Ballot::test_ballot(6789012)
 }
 
 #[cfg(test)]
+/// Create a deterministic test ballot with a large random seed.
+/// # Returns
+/// A test Ballot with seed 987654321.
 pub fn create_test_ballot_large() -> crate::elections::Ballot {
     crate::elections::Ballot::test_ballot(987654321)
 }
 
 #[cfg(test)]
+/// Create a deterministic encryption keypair for tests.
+/// # Returns
+/// An ElectionKeyPair generated with a fixed test context.
 pub fn create_test_encryption_keypair() -> ElectionKeyPair {
     generate_encryption_keypair(b"test_context").unwrap()
 }
 
 #[cfg(test)]
+/// Encrypt a test ballot and return the cryptogram and randomizers.
+/// # Arguments
+/// * `ballot` - The ballot to encrypt.
+/// * `election_keypair` - The election keypair for encryption.
+/// # Returns
+/// A tuple containing (ballot_cryptogram, randomizers).
 pub fn encrypt_test_ballot(
     ballot: crate::elections::Ballot,
     election_keypair: &ElectionKeyPair,

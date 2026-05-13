@@ -5,6 +5,8 @@ This change log lists changes to VoteSecure with each released version. It is no
 ## [Version 1.3](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_3) - 15 May 2026
 
 - added documentation (in the CONOPS and relevant protocol specifications) to clarify that trustee public keys are expected to be broadly publicly known so that trustee signatures are publicly verifiable, and that trustee signatures for the election public key should be posted to the public bulletin board
+- renamed several Rust structures to increase understandability; this does not change any SDK functionality or protocol descriptions but does break the API, necessitating the 1.2 → 1.3 version bump
+- added `rustdoc` comments to public structures/functions in the `protocol` crate that did not previously have them, and updated many existing `protocol` crate documentation comments; aside from fixing some minor issues with existing comments, documentation comments were not updated in the `cryptography` crate as application developers typically do not program directly against it
 
 ## [Version 1.2](https://github.com/FreeAndFair/VoteSecure/releases/tag/v1_2) - 5 May 2026
 

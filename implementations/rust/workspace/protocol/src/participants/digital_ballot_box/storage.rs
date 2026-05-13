@@ -133,6 +133,9 @@ pub struct InMemoryStorage {
 
 impl InMemoryStorage {
     /// Create a new empty in-memory storage.
+    ///
+    /// # Returns
+    /// An `InMemoryStorage` with no voter authorizations, submitted ballots, or cast ballots.
     pub fn new() -> Self {
         Self {
             voter_authorizations: HashMap::new(),

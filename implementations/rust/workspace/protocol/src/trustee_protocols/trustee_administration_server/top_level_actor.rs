@@ -197,6 +197,11 @@ impl TASActor {
     /// generation were completed before the election, and now it's
     /// time to run the mixing and decryption), or with initial data
     /// to be used for the setup protocol.
+    /// # Arguments
+    /// * `signing_key` - The signing key for this trustee.
+    /// * `checkpoint` - The checkpoint data containing trustee information, threshold, and board state.
+    /// # Returns
+    /// A Result containing the initialized TASActor or an error message.
     pub fn new(signing_key: SigningKey, checkpoint: TASCheckpoint) -> Result<Self, String> {
         // Sanity check the initialization data.
         let mut local_checkpoint = checkpoint.clone();
@@ -215,6 +220,10 @@ impl TASActor {
     /// Handle an input. This can be a command (start decryption, etc.),
     /// or an incoming message from a trustee. This function is, effectively,
     /// the state machine for the TAS.
+    /// # Arguments
+    /// * `input` - The input (command or message) to process.
+    /// # Returns
+    /// A tuple of (optional output, optional trustee board update message).
     pub(crate) fn handle_input(
         &mut self,
         input: &TASInput,
@@ -363,6 +372,10 @@ impl TASActor {
     ///
     /// If the message is an exact duplicate of one already on the board,
     /// it is not added, and no update message is returned.
+    /// # Arguments
+    /// * `msg` - The trustee message to add to the board.
+    /// # Returns
+    /// An optional TrusteeBBUpdateMsg if the message was added, or None if it was a duplicate.
     pub(crate) fn add_to_board(&mut self, msg: TrusteeMsg) -> Option<TrusteeBBUpdateMsg> {
         match self.checkpoint.board.iter().position(|m| m == &msg) {
             None => {
@@ -381,6 +394,10 @@ impl TASActor {
 
     /// Retrieves a range of messages from the trustee board in response to
     /// a trustee board update request message, generating a TrusteeUpdateData.
+    /// # Arguments
+    /// * `msg` - The request for a range of messages from the board.
+    /// # Returns
+    /// A TrusteeUpdateData containing the requested messages or an error.
     pub(crate) fn trustee_update(&mut self, msg: TrusteeBBUpdateRequestMsg) -> TrusteeUpdateData {
         // Check the message range to see if it's valid; a lower bound higher
         // than the current board index results in an error, but upper bounds
@@ -411,6 +428,8 @@ impl TASActor {
     }
 
     /// Returns the current subprotocol, based on our state.
+    /// # Returns
+    /// The TASSubprotocol corresponding to the current state.
     pub(crate) fn current_subprotocol(&self) -> TASSubprotocol {
         match self.state {
             TASState::Idle(_) => TASSubprotocol::Idle,
@@ -429,6 +448,10 @@ impl TASActor {
 
     /// Checks the signature on a trustee message for validity and to
     /// ensure that it matches a known trustee.
+    /// # Arguments
+    /// * `msg` - The trustee message to validate.
+    /// # Returns
+    /// Ok(()) if the signature is valid and from a known trustee, or an error message.
     pub(crate) fn trustee_signature_ok(&self, msg: &TrusteeMsg) -> Result<(), String> {
         // First, check that setup_msg is properly signed (if it isn't,
         // we can throw it out regardless of who sent it).
@@ -455,6 +478,11 @@ impl TASActor {
     /// messages in the set, and (2) optionally, all the trustees
     /// that are supposed to be active have signed a message from
     /// each originator.
+    /// # Arguments
+    /// * `msgs` - The messages to check.
+    /// * `check_signers` - Whether to verify that each originator has signatures from all active trustees.
+    /// # Returns
+    /// True if the conditions are met, false otherwise.
     pub(crate) fn check_participants(&self, msgs: &[&TrusteeMsg], check_signers: bool) -> bool {
         // If this function is called when the active trustee list is
         // empty, it always returns false. This should never happen, but
@@ -508,6 +536,8 @@ impl TASActor {
 
     /// Creates a board message from our state data, to begin the setup
     /// process.
+    /// # Returns
+    /// A TrusteeMsg containing the initial setup message.
     pub(crate) fn create_initial_setup_msg(&self) -> TrusteeMsg {
         let setup_msg_data = SetupMsgData {
             originator: self.checkpoint.trustees[0].trustee_id(),
@@ -529,6 +559,10 @@ impl TASActor {
     /// as that the contents match the setup information we sent out,
     /// to allow us to determine the protocol's success or failure more
     /// easily later on.
+    /// # Arguments
+    /// * `msg` - The setup message to validate.
+    /// # Returns
+    /// Ok(()) if the message is valid, or an error message.
     pub fn check_setup_msg(&self, msg: &SetupMsg) -> Result<(), String> {
         // First, check the message signature.
         let wrapped_msg = TrusteeMsg::Setup(msg.clone());
@@ -558,9 +592,12 @@ impl TASActor {
         Ok(())
     }
 
-    // Check that the setup protocol is complete (based on the trustee board).
-    // This is the case when there is (at least) one setup message signed by
-    // each trustee. We know they all have identical setup data because
+    /// Check that setup has completed based on trustee board messages.
+    ///
+    /// Setup is complete when at least one setup message signed by each trustee
+    /// has been posted.
+    /// # Returns
+    /// True if setup is complete (messages from all trustees), false otherwise.
     pub(crate) fn setup_complete(&self) -> bool {
         // Get all the setup messages from the board.
         let setup_msgs: Vec<&TrusteeMsg> = self
@@ -590,6 +627,8 @@ impl TASActor {
     // KeyGen Protocol Functions //
 
     /// Check that there is a key share on the board from each trustee.
+    /// # Returns
+    /// True if key shares received from all trustees, false otherwise.
     pub(crate) fn key_shares_complete(&self) -> bool {
         // Get all the key shares messages from the board.
         let key_shares_msgs: Vec<&TrusteeMsg> = self
@@ -623,6 +662,10 @@ impl TASActor {
     /// trustee board. We check here that the public key matches any
     /// previous public keys we received (in addition to checking the
     /// message signature), and if not we fail the protocol.
+    /// # Arguments
+    /// * `msg` - The election public key message to validate.
+    /// # Returns
+    /// Ok(()) if the message is valid, or an error message.
     pub fn check_election_public_key_msg(&self, msg: &ElectionPublicKeyMsg) -> Result<(), String> {
         // First, check the message signature.
         let wrapped_msg = TrusteeMsg::ElectionPublicKey(msg.clone());
@@ -644,10 +687,13 @@ impl TASActor {
         }
     }
 
-    /// Check that there is an election public key on the board from
+    /// Check that there is an election public key message on the board from
     /// each trustee.
-    // TODO: is there a way to parameterize this by enum variant? If so,
-    // this function is identical to "key_shares_complete".
+    ///
+    /// This is currently parallel to [`Self::key_shares_complete`], but kept
+    /// as a separate helper for readability.
+    /// # Returns
+    /// True if public key messages received from all trustees, false otherwise.
     pub(crate) fn election_public_keys_complete(&self) -> bool {
         // Get all the key shares messages from the board.
         let public_key_msgs: Vec<&TrusteeMsg> = self
@@ -681,6 +727,10 @@ impl TASActor {
 
     /// Creates a board message from the initial mixing parameters
     /// in order to bootstrap the mixing and decryption subprotocols.
+    /// # Arguments
+    /// * `mixing_parameters` - The parameters for the mixing phase.
+    /// # Returns
+    /// A TrusteeMsg containing the initial mixing message.
     pub(crate) fn create_initial_mix_msg(
         &self,
         mixing_parameters: &MixingParameters,
@@ -712,6 +762,8 @@ impl TASActor {
     /// trustees. It also does not check to make sure that the messages
     /// were created in the right order, etc.; another check already
     /// being done by the trustees.
+    /// # Returns
+    /// True if threshold number of ElGamal cryptogram messages received with sufficient signatures, false otherwise.
     pub(crate) fn eg_cryptograms_complete(&self) -> bool {
         // Get all the ElGamal cryptogram messages from the board.
         let msgs: Vec<&TrusteeMsg> = self
@@ -734,6 +786,8 @@ impl TASActor {
     /// Note that it does _not_ examine the actual contents of the
     /// messages, as that would be extremely expensive and is
     /// already being done by the trustees.
+    /// # Returns
+    /// True if threshold number of partial decryptions received, false otherwise.
     pub(crate) fn partial_decryptions_complete(&self) -> bool {
         // Get all the partial decryption messages from the board.
         let msgs: Vec<&TrusteeMsg> = self
@@ -751,6 +805,8 @@ impl TASActor {
     /// number of trustees. Returns an error if there are decrypted
     /// ballots from a threshold number of trustees but they don't
     /// all match.
+    /// # Returns
+    /// Ok(true) if enough decrypted ballots received and matching, Ok(false) if not enough, or error if mismatch.
     pub(crate) fn decrypted_ballots_complete(&self) -> Result<bool, String> {
         // Get all the decrypted ballot messages from the board.
         let msgs: Vec<&TrusteeMsg> = self

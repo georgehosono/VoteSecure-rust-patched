@@ -8,6 +8,7 @@ use super::types::*;
 use strum::Display;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Display, Ord, PartialOrd)]
+/// Internal message facts consumed and produced by Ascent rules.
 pub(crate) enum Message {
     ConfigurationValid(CfgHash, TrusteeCount, TrusteeCount, TrusteeIndex),
     Shares(CfgHash, TrusteeSharesHash, Sender),
@@ -47,6 +48,7 @@ pub(crate) enum Message {
 impl Message {
     // Every message has a unique "slot". This function checks to ensure
     // that no two messages collide.
+    /// Return whether `self` and `other` occupy the same logical slot.
     pub(crate) fn collides(&self, other: &Message) -> bool {
         // For the purposes of ascent logic, two messages instances for
         // which equality holds are considered to be the same message, and
@@ -95,6 +97,7 @@ impl Message {
         }
     }
 
+    /// Return the configuration hash associated with this message.
     pub(crate) fn get_cfg(&self) -> CfgHash {
         match self {
             Message::ConfigurationValid(cfg_hash, _, _, _) => *cfg_hash,

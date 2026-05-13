@@ -2,8 +2,9 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
-//! Protocol distributed key generation phase
+//! Protocol distributed key generation phase.
 
+/// Ascent inference rules for the DKG phase.
 pub(crate) mod infer {
 
     ascent::ascent_source! { dkg_infer:
@@ -126,9 +127,11 @@ pub(crate) mod infer {
     }
 }
 
+/// Stateright model and execution harness for DKG rules.
 pub(crate) mod stateright {
 
     const HASH_SIZE: usize = 64;
+    /// Dummy configuration hash used by DKG Stateright tests.
     pub(crate) const DUMMY_CFG: [u8; HASH_SIZE] = [0u8; HASH_SIZE];
 
     use stateright::{Model, Property};
@@ -153,11 +156,13 @@ pub(crate) mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::dkg::infer::dkg_infer);
         }
 
+        /// Create a fresh Ascent program for DKG inference tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
     }
 
+    /// Ascent execution rules used by DKG Stateright tests.
     pub(crate) mod execute {
 
         ascent::ascent_source! { dkg_execute:
@@ -186,30 +191,36 @@ pub(crate) mod stateright {
             include_source!(crate::trustee_protocols::trustee_application::ascent_logic::dkg::stateright::execute::dkg_execute);
         }
 
+        /// Create a fresh Ascent program for DKG execution tests.
         pub(crate) fn program() -> AscentProgram {
             AscentProgram::default()
         }
 
+        /// Deterministic shares hash stub for a given trustee.
         pub(crate) fn share_stub(trustee: usize) -> TrusteeSharesHash {
             [trustee as u8; 64].into()
         }
 
+        /// Deterministic public key hash stub for the given configuration.
         pub(crate) fn pk_stub(cfg_hash: CfgHash) -> TrusteeSharesHash {
             cfg_hash
         }
     }
 
+    /// Stateright harness for exploring DKG state transitions.
     pub(crate) struct Harness<C: Context, const W: usize, const T: usize, const P: usize> {
         pub cfg_hash: CfgHash,
         phantom_c: PhantomData<C>,
     }
     impl<C: Context, const W: usize, const T: usize, const P: usize> Harness<C, W, T, P> {
+        /// Create a new DKG harness.
         pub(crate) fn new(cfg_hash: CfgHash) -> Self {
             Self {
                 cfg_hash,
                 phantom_c: PhantomData,
             }
         }
+        /// Create the initial hash board for DKG model checking.
         pub(crate) fn get_bb() -> HashBoard<C, W, T, P> {
             HashBoard::new(DUMMY_CFG.into())
         }

@@ -62,6 +62,13 @@ pub use cryptography::dkgd::recipient::{DecryptionFactor, ParticipantPosition, R
 // =============================================================================
 
 /// Encrypt a share (scalar) using a trustee's public key.
+///
+/// # Arguments
+/// * `share` - The scalar share to encrypt.
+/// * `trustee_public_key` - The trustee public key used for ElGamal encryption.
+///
+/// # Returns
+/// `Ok(ciphertext)` containing the encrypted share, or `Err(msg)` if encoding fails.
 pub fn encrypt_share(
     share: &Share,
     trustee_public_key: &TrusteePublicKey,
@@ -75,6 +82,13 @@ pub fn encrypt_share(
 }
 
 /// Decrypt a share ciphertext using a trustee's key pair.
+///
+/// # Arguments
+/// * `ciphertext` - The encrypted share ciphertext to decrypt.
+/// * `trustee_key_pair` - The trustee key pair used for ElGamal decryption.
+///
+/// # Returns
+/// `Ok(share)` with the recovered scalar, or `Err(msg)` if decoding or shape checks fail.
 pub fn decrypt_share(
     ciphertext: &ShareCiphertext,
     trustee_key_pair: &TrusteeKeyPair,
@@ -102,12 +116,26 @@ pub fn decrypt_share(
 // =============================================================================
 
 /// Extract the underlying ElGamal public key from a Naor-Yung public key.
+///
+/// # Arguments
+/// * `ny_pk` - The Naor-Yung election public key.
+///
+/// # Returns
+/// The corresponding ElGamal public key used for ballot-check operations.
 pub fn ny_to_eg_public_key(ny_pk: &ElectionKey) -> BallotCheckPublicKey {
     EGPublicKey { y: ny_pk.pk_b }
 }
 
 /// Shuffle a list of ballot ciphertexts, returning the shuffled list
 /// and a proof of correct shuffling.
+///
+/// # Arguments
+/// * `ciphertexts` - The ciphertexts to shuffle.
+/// * `election_pk` - The election public key used by the shuffler.
+/// * `context` - Domain-separation context for generator derivation and proof generation.
+///
+/// # Returns
+/// `Ok((mixed, proof))` with shuffled ciphertexts and a shuffle proof, or `Err(msg)` on failure.
 pub fn shuffle_ciphertexts(
     ciphertexts: &[StrippedBallotCiphertext],
     election_pk: &ElectionKey,
@@ -135,6 +163,16 @@ pub fn shuffle_ciphertexts(
 /// An Ok result means that the proof was verified; a failed
 /// verification or another error during the verification process
 /// causes an Err result.
+///
+/// # Arguments
+/// * `input_ciphertexts` - The ciphertext list before shuffling.
+/// * `output_ciphertexts` - The ciphertext list after shuffling.
+/// * `proof` - The shuffle proof to verify.
+/// * `election_pk` - The election public key used for verification.
+/// * `context` - Domain-separation context used during shuffle/proof generation.
+///
+/// # Returns
+/// `Ok(())` if the proof is valid, or `Err(msg)` if verification fails.
 pub fn verify_shuffle(
     input_ciphertexts: &[StrippedBallotCiphertext],
     output_ciphertexts: &[StrippedBallotCiphertext],
@@ -170,6 +208,14 @@ pub fn verify_shuffle(
 
 /// Compute partial decryptions for a set of ciphertexts, given a
 /// recipient's secret key and the proof context.
+///
+/// # Arguments
+/// * `ciphertexts` - The ciphertexts to partially decrypt.
+/// * `recipient` - The recipient/trustee state holding secret material and proofs.
+/// * `proof_context` - Domain-separation context for partial decryption proofs.
+///
+/// # Returns
+/// `Ok(factors)` containing one decryption factor per ciphertext, or `Err(msg)` on failure.
 pub fn compute_partial_decryptions<const T: usize, const P: usize>(
     ciphertexts: &[StrippedBallotCiphertext],
     recipient: &Recipient<CryptographyContext, T, P>,
@@ -190,6 +236,15 @@ pub fn compute_partial_decryptions<const T: usize, const P: usize>(
 
 /// Combine partial decryptions from T trustees to recover plaintext
 /// `Ballot`s, given their verification keys and the proof context.
+///
+/// # Arguments
+/// * `ciphertexts` - The ciphertexts corresponding to all provided partial decryptions.
+/// * `partial_decryptions_by_trustee` - Decryption factors grouped by trustee.
+/// * `verification_keys` - Trustee verification keys matching the decryption factors.
+/// * `proof_context` - Domain-separation context used for decryption-factor verification.
+///
+/// # Returns
+/// `Ok(elements)` containing recovered plaintext element arrays, or `Err(msg)` on failure.
 pub fn combine_partial_decryptions<const T: usize, const P: usize>(
     ciphertexts: &[StrippedBallotCiphertext],
     partial_decryptions_by_trustee: &[Vec<

@@ -16,36 +16,42 @@ use crate::bulletins::{
 };
 use crate::cryptography::{SigningKey, verify_signature};
 use crate::elections::{BallotTracker, ElectionHash};
-use crate::messages::{CastConfMsg, CastConfMsgData, CastReqMsg, ProtocolMessage};
+use crate::messages::{CastConfMsg, CastConfMsgData, CastReqMsg, ProtocolMsg};
 use crate::participants::digital_ballot_box::{bulletin_board::BulletinBoard, storage::DBBStorage};
 use cryptography::utils::serialization::VSerializable;
 
-// --- I/O Types ---
-
+/// Inputs accepted by the casting sub-actor.
 #[derive(Debug, Clone)]
 pub enum CastingInput {
-    NetworkMessage(ProtocolMessage),
+    /// A protocol message received over the network.
+    NetworkMessage(ProtocolMsg),
 }
 
+/// Outputs produced by the casting sub-actor.
 #[derive(Debug, Clone)]
 pub enum CastingOutput {
-    SendMessage(ProtocolMessage),
+    /// A protocol message that should be sent onward.
+    SendMessage(ProtocolMsg),
+    /// The casting protocol completed successfully.
     Success,
+    /// The casting protocol failed with an error message.
     Failure(String),
 }
 
-// --- State ---
-
+/// Casting sub-actor states.
 #[derive(Debug, Clone)]
 pub enum CastingState {
+    /// Waiting for an incoming cast request.
     AwaitingCastRequest,
+    /// Validating and processing the cast request.
     PublishingVoterAuth,
+    /// Publishing the ballot-cast bulletin.
     PublishingBallotCast,
+    /// Protocol execution is complete.
     Complete,
 }
 
-// --- Actor ---
-
+/// Ballot casting sub-actor for the DBB.
 #[derive(Clone, Debug)]
 pub struct CastingActor {
     state: CastingState,
@@ -57,6 +63,14 @@ pub struct CastingActor {
 }
 
 impl CastingActor {
+    /// Create a new casting sub-actor.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_signing_key` - The DBB's signing key for signing bulletins.
+    ///
+    /// # Returns
+    /// A new `CastingActor` in the `AwaitingCastRequest` state.
     pub fn new(election_hash: ElectionHash, dbb_signing_key: SigningKey) -> Self {
         Self {
             state: CastingState::AwaitingCastRequest,
@@ -67,10 +81,23 @@ impl CastingActor {
         }
     }
 
+    /// Get the current casting state.
+    ///
+    /// # Returns
+    /// A clone of the current `CastingState`.
     pub fn get_state(&self) -> CastingState {
         self.state.clone()
     }
 
+    /// Process an input for the casting subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    /// * `storage` - Mutable reference to the DBB storage.
+    /// * `bulletin_board` - Mutable reference to the bulletin board.
+    ///
+    /// # Returns
+    /// `Ok(output)` describing the result, or `Err(msg)` if a storage or bulletin board error occurs.
     pub fn process_input<S: DBBStorage, B: BulletinBoard>(
         &mut self,
         input: CastingInput,
@@ -79,7 +106,7 @@ impl CastingActor {
     ) -> Result<CastingOutput, String> {
         match input {
             CastingInput::NetworkMessage(message) => {
-                if let ProtocolMessage::CastReq(cast_req) = message {
+                if let ProtocolMsg::CastReq(cast_req) = message {
                     self.handle_cast_request(cast_req, storage, bulletin_board)
                 } else {
                     Err(format!(
@@ -111,7 +138,7 @@ impl CastingActor {
         if let Err(error_msg) = check_result {
             // The cast request was invalid.
             self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
                 self.create_error_message(error_msg),
             )));
         }
@@ -124,7 +151,7 @@ impl CastingActor {
         if let Err(error_msg) = auth_msg {
             // The authorization message couldn't be found.
             self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
                 self.create_error_message(error_msg),
             )));
         }
@@ -137,7 +164,7 @@ impl CastingActor {
         if let Err(error_msg) = ballot {
             // The authorization message couldn't be found.
             self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
                 self.create_error_message(error_msg),
             )));
         }
@@ -162,7 +189,7 @@ impl CastingActor {
         if let Err(error_msg) = publish_result {
             // The authorization bulletin couldn't be published.
             self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
                 self.create_error_message(error_msg),
             )));
         }
@@ -177,7 +204,7 @@ impl CastingActor {
         if let Err(error_msg) = ballot_cast_tracker {
             // The cast bulletin couldn't be published.
             self.state = CastingState::Complete;
-            return Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
+            return Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(
                 self.create_error_message(error_msg),
             )));
         }
@@ -190,9 +217,7 @@ impl CastingActor {
 
         self.state = CastingState::Complete;
 
-        Ok(CastingOutput::SendMessage(ProtocolMessage::CastConf(
-            conf_msg,
-        )))
+        Ok(CastingOutput::SendMessage(ProtocolMsg::CastConf(conf_msg)))
     }
 
     // =============================================================================
@@ -583,14 +608,14 @@ mod tests {
         // Process the cast request
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(conf)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(conf)) => {
                 assert_eq!(conf.data.election_hash, election_hash);
                 assert_eq!(conf.data.ballot_sub_tracker, tracker);
             }
@@ -632,14 +657,14 @@ mod tests {
         // Process the cast request
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Election hash mismatch"));
             }
@@ -735,14 +760,14 @@ mod tests {
         // Process the cast request
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("already cast"));
             }
@@ -833,14 +858,14 @@ mod tests {
 
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Invalid signature"));
             }
@@ -935,14 +960,14 @@ mod tests {
 
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Invalid signature"));
             }
@@ -1038,14 +1063,14 @@ mod tests {
 
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Invalid signature"));
             }
@@ -1131,14 +1156,14 @@ mod tests {
 
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Invalid signature"));
             }
@@ -1224,14 +1249,14 @@ mod tests {
 
         let mut actor = CastingActor::new(election_hash, dbb_signing_key);
         let result = actor.process_input(
-            CastingInput::NetworkMessage(ProtocolMessage::CastReq(cast_req)),
+            CastingInput::NetworkMessage(ProtocolMsg::CastReq(cast_req)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            CastingOutput::SendMessage(ProtocolMessage::CastConf(msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastConf(msg)) => {
                 assert!(!msg.data.cast_result.0);
                 assert!(msg.data.cast_result.1.contains("Invalid signature"));
             }

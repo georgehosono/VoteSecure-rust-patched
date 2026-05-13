@@ -17,7 +17,7 @@
 //! implementations for
 //!
 //! - Generic structs/tuples annotated with `vser` macro derives
-//! - Array[N; T]
+//! - `[T; N]`
 
 use crate::utils::error::Error;
 use crate::utils::serialization::{TFTuple, get_slice};

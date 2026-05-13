@@ -15,9 +15,13 @@
 //! The DBB handles concurrent sessions using a state machine approach,
 //! with separate sub-actors for each protocol type.
 
+/// Bulletin-board data structures and helpers.
 pub mod bulletin_board;
+/// DBB storage data structures and helpers.
 pub mod storage;
+/// DBB sub-actor implementations.
 pub mod sub_actors;
+/// Top-level DBB actor implementation.
 pub mod top_level_actor;
 
 // Re-export main types for convenience

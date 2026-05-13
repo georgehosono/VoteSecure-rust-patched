@@ -10,7 +10,7 @@
 
 use crate::cryptography::{Signature, SigningKey, VerifyingKey};
 use crate::elections::{BallotTracker, ElectionHash, VoterPseudonym};
-use crate::messages::{CastConfMsg, CastReqMsg, CastReqMsgData, ProtocolMessage};
+use crate::messages::{CastConfMsg, CastReqMsg, CastReqMsgData, ProtocolMsg};
 use cryptography::utils::serialization::VSerializable;
 
 // --- I. Actor-Specific I/O ---
@@ -21,14 +21,14 @@ pub enum CastingInput {
     /// Starts the casting protocol with the ballot submission tracker.
     Start(String),
     /// A network message intended for this subprotocol.
-    NetworkMessage(ProtocolMessage),
+    NetworkMessage(ProtocolMsg),
 }
 
 /// The set of outputs that the `CastingActor` can produce.
 #[derive(Debug, Clone)]
 pub enum CastingOutput {
     /// A message that needs to be sent over the network.
-    SendMessage(ProtocolMessage),
+    SendMessage(ProtocolMsg),
     /// The protocol has completed successfully.
     Success(BallotCastingSuccess),
     /// The protocol has failed.
@@ -54,7 +54,7 @@ enum SubState {
 #[derive(Clone, Debug)]
 pub struct CastingActor {
     state: SubState,
-    // --- Injected State from TopLevelActor ---
+    // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     dbb_verifying_key: VerifyingKey,
     voter_pseudonym: VoterPseudonym,
@@ -66,6 +66,16 @@ pub struct CastingActor {
 
 impl CastingActor {
     /// Creates a new `CastingActor`.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_verifying_key` - The DBB's verifying key for validating cast responses.
+    /// * `voter_pseudonym` - The voter's pseudonym used in cast requests.
+    /// * `voter_signing_key` - The voter's signing key used to sign cast requests.
+    /// * `voter_verifying_key` - The voter's verifying key included with cast requests.
+    ///
+    /// # Returns
+    /// A new `CastingActor` in the `ReadyToStart` state.
     pub fn new(
         election_hash: ElectionHash,
         dbb_verifying_key: VerifyingKey,
@@ -85,6 +95,12 @@ impl CastingActor {
     }
 
     /// Processes an input for the Ballot Casting subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// A `CastingOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: CastingInput) -> CastingOutput {
         match (self.state.clone(), input) {
             (SubState::ReadyToStart, CastingInput::Start(tracker)) => {
@@ -104,12 +120,12 @@ impl CastingActor {
 
                 self.sent_cast_request = Some(cast_req_msg.clone());
                 self.state = SubState::AwaitingConfirmation;
-                CastingOutput::SendMessage(ProtocolMessage::CastReq(cast_req_msg))
+                CastingOutput::SendMessage(ProtocolMsg::CastReq(cast_req_msg))
             }
 
             (
                 SubState::AwaitingConfirmation,
-                CastingInput::NetworkMessage(ProtocolMessage::CastConf(conf_msg)),
+                CastingInput::NetworkMessage(ProtocolMsg::CastConf(conf_msg)),
             ) => {
                 if conf_msg.data.cast_result.0 {
                     // Perform Cast Confirmation Checks from the spec
@@ -157,7 +173,7 @@ impl CastingActor {
         Ok(())
     }
 
-    /// Check: The election_hash is for the current election
+    /// Check: The election_hash is for the current election.
     fn check_conf_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
             return Err("CastConfMsg has incorrect election hash".to_string());
@@ -168,8 +184,8 @@ impl CastingActor {
         Ok(())
     }
 
-    /// Check: The ballot_sub_tracker matches the tracker we sent
-    /// This corresponds to the "Incorrect BallotID Error" in the spec diagram
+    /// Check: The ballot_sub_tracker matches the tracker we sent.
+    /// This corresponds to the "Incorrect BallotID Error" in the spec diagram.
     fn check_conf_ballot_sub_tracker(
         &self,
         ballot_sub_tracker: &BallotTracker,
@@ -192,8 +208,8 @@ impl CastingActor {
         Ok(())
     }
 
-    /// Check: The ballot_cast_tracker is a valid message locator
-    /// This corresponds to the "Invalid Message Locator Error" in the spec diagram
+    /// Check: The ballot_cast_tracker is a valid message locator.
+    /// This corresponds to the "Invalid Message Locator Error" in the spec diagram.
     fn check_conf_message_locator(
         &self,
         ballot_cast_tracker: &BallotTracker,
@@ -213,8 +229,8 @@ impl CastingActor {
         Ok(())
     }
 
-    /// Check: The signature is a valid signature from the DBB
-    /// This corresponds to the "Invalid Signature Error" in the spec diagram
+    /// Check: The signature is a valid signature from the DBB.
+    /// This corresponds to the "Invalid Signature Error" in the spec diagram.
     fn check_conf_signature(
         &self,
         data: &crate::messages::CastConfMsgData,
@@ -273,7 +289,7 @@ mod tests {
 
         // Should get a SendMessage output
         match output {
-            CastingOutput::SendMessage(ProtocolMessage::CastReq(cast_req)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastReq(cast_req)) => {
                 // Verify signature by re-creating the serialized data using VSerializable
                 let serialized = cast_req.data.ser();
                 let verification_result = crate::cryptography::verify_signature(
@@ -371,7 +387,7 @@ mod tests {
         let result = casting_actor.process_input(CastingInput::Start(ballot_tracker.clone()));
 
         match result {
-            CastingOutput::SendMessage(ProtocolMessage::CastReq(cast_req_msg)) => {
+            CastingOutput::SendMessage(ProtocolMsg::CastReq(cast_req_msg)) => {
                 // Verify that the message was created successfully
                 assert_eq!(
                     cast_req_msg.data.election_hash,

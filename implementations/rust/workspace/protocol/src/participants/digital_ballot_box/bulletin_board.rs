@@ -9,7 +9,7 @@
 //! one via cryptographic hash, creating an immutable audit trail.
 
 use crate::bulletins::Bulletin;
-use crate::cryptography::{Digest, Hasher256, OldHasher, VSerializable};
+use crate::cryptography::{Digest, Hasher256, HasherTrait, VSerializable};
 use crate::elections::{BallotTracker, VoterPseudonym};
 use std::collections::HashMap;
 
@@ -60,7 +60,7 @@ pub trait BulletinBoard: Clone + std::fmt::Debug {
     /// * `bulletin_type` - The type of bulletins to retrieve
     ///
     /// # Returns
-    /// A vector of bulletins matching the specified type
+    /// A vector of bulletins matching the specified type.
     fn get_bulletins_by_type(&self, bulletin_type: BulletinType) -> Vec<Bulletin>;
 
     /// Get bulletins associated with a specific voter pseudonym.
@@ -112,15 +112,18 @@ pub enum BulletinType {
 /// provides a hash index for fast lookup by tracker.
 #[derive(Clone, Debug)]
 pub struct InMemoryBulletinBoard {
-    /// All bulletins in order
+    /// All bulletins in order.
     bulletins: Vec<Bulletin>,
 
-    /// Maps bulletin trackers (hashes) to their index in the bulletins vector
+    /// Maps bulletin trackers (hashes) to their index in the bulletins vector.
     bulletin_hashes: HashMap<BallotTracker, usize>,
 }
 
 impl InMemoryBulletinBoard {
     /// Create a new empty bulletin board.
+    ///
+    /// # Returns
+    /// An `InMemoryBulletinBoard` with no bulletins.
     pub fn new() -> Self {
         Self {
             bulletins: Vec::new(),
@@ -136,7 +139,7 @@ impl InMemoryBulletinBoard {
     /// * `bulletin` - The bulletin to hash
     ///
     /// # Returns
-    /// A hex-encoded SHA3-256 hash string
+    /// A hex-encoded SHA3-256 hash string.
     fn compute_bulletin_hash(&self, bulletin: &Bulletin) -> String {
         let serialized = match bulletin {
             Bulletin::BallotSubmission(b) => b.ser(),

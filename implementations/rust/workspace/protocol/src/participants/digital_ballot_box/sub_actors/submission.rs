@@ -14,35 +14,40 @@
 use crate::bulletins::{BallotSubBulletin, BallotSubBulletinData, Bulletin};
 use crate::cryptography::{ElectionKey, SigningKey, verify_ciphertext_proof};
 use crate::elections::{BallotStyle, ElectionHash};
-use crate::messages::{ProtocolMessage, SignedBallotMsg, TrackerMsg, TrackerMsgData};
+use crate::messages::{ProtocolMsg, SignedBallotMsg, TrackerMsg, TrackerMsgData};
 use crate::participants::digital_ballot_box::{BulletinBoard, DBBStorage};
 use cryptography::utils::serialization::VSerializable;
 
-// --- I/O Types ---
-
+/// Inputs accepted by the submission sub-actor.
 #[derive(Debug, Clone)]
 pub enum SubmissionInput {
-    NetworkMessage(ProtocolMessage),
+    /// A protocol message received over the network.
+    NetworkMessage(ProtocolMsg),
 }
 
+/// Outputs produced by the submission sub-actor.
 #[derive(Debug, Clone)]
 pub enum SubmissionOutput {
-    SendMessage(ProtocolMessage),
+    /// A protocol message that should be sent onward.
+    SendMessage(ProtocolMsg),
+    /// The submission protocol completed successfully.
     Success,
+    /// The submission protocol failed with an error message.
     Failure(String),
 }
 
-// --- State ---
-
+/// Submission sub-actor states.
 #[derive(Debug, Clone)]
 pub enum SubmissionState {
+    /// Waiting for a signed ballot.
     AwaitingBallot,
+    /// Validating and publishing the ballot.
     ProcessingBallot,
+    /// Protocol execution is complete.
     Complete,
 }
 
-// --- Actor ---
-
+/// Ballot submission sub-actor for the DBB.
 #[derive(Clone, Debug)]
 pub struct SubmissionActor {
     state: SubmissionState,
@@ -53,6 +58,15 @@ pub struct SubmissionActor {
 }
 
 impl SubmissionActor {
+    /// Create a new submission sub-actor.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `dbb_signing_key` - The DBB's signing key for signing bulletins.
+    /// * `election_public_key` - The election public key for verifying Naor-Yung proofs.
+    ///
+    /// # Returns
+    /// A new `SubmissionActor` in the `AwaitingBallot` state.
     pub fn new(
         election_hash: ElectionHash,
         dbb_signing_key: SigningKey,
@@ -67,10 +81,23 @@ impl SubmissionActor {
         }
     }
 
+    /// Get the current submission state.
+    ///
+    /// # Returns
+    /// A clone of the current `SubmissionState`.
     pub fn get_state(&self) -> SubmissionState {
         self.state.clone()
     }
 
+    /// Process an input for the submission subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    /// * `storage` - Mutable reference to the DBB storage.
+    /// * `bulletin_board` - Mutable reference to the bulletin board.
+    ///
+    /// # Returns
+    /// `Ok(output)` describing the result, or `Err(msg)` if a storage or bulletin board error occurs.
     pub fn process_input<S: DBBStorage, B: BulletinBoard>(
         &mut self,
         input: SubmissionInput,
@@ -80,7 +107,7 @@ impl SubmissionActor {
         match (self.state.clone(), input) {
             (SubmissionState::AwaitingBallot, SubmissionInput::NetworkMessage(msg)) => {
                 match msg {
-                    ProtocolMessage::SubmitSignedBallot(signed_ballot) => {
+                    ProtocolMsg::SubmitSignedBallot(signed_ballot) => {
                         // Perform all 9 "Submit Signed Ballot Checks"
                         let check_result = self.perform_submit_signed_ballot_checks(
                             &signed_ballot,
@@ -92,7 +119,7 @@ impl SubmissionActor {
                             // The ballot was invalid.
                             self.state = SubmissionState::Complete;
                             return Ok(SubmissionOutput::SendMessage(
-                                ProtocolMessage::ReturnBallotTracker(
+                                ProtocolMsg::ReturnBallotTracker(
                                     self.create_error_message(error_msg),
                                 ),
                             ));
@@ -110,7 +137,7 @@ impl SubmissionActor {
                             // The ballot was invalid.
                             self.state = SubmissionState::Complete;
                             return Ok(SubmissionOutput::SendMessage(
-                                ProtocolMessage::ReturnBallotTracker(
+                                ProtocolMsg::ReturnBallotTracker(
                                     self.create_error_message(error_msg),
                                 ),
                             ));
@@ -119,7 +146,7 @@ impl SubmissionActor {
                         // Create TrackerMsg response
                         self.state = SubmissionState::Complete;
                         Ok(SubmissionOutput::SendMessage(
-                            ProtocolMessage::ReturnBallotTracker(self.create_tracker_message(
+                            ProtocolMsg::ReturnBallotTracker(self.create_tracker_message(
                                 tracker_result.expect("tracker must exist here"),
                             )),
                         ))
@@ -172,7 +199,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #2: The election_hash is the hash of the election configuration item
+    /// Check #2: The election_hash is the hash of the election configuration item.
     fn check_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if *election_hash != self.election_hash {
             return Err("Ballot has incorrect election hash".to_string());
@@ -180,7 +207,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #3: The voter_pseudonym and voter_public_key match a stored AuthVoterMsg
+    /// Check #3: The voter_pseudonym and voter_public_key match a stored AuthVoterMsg.
     fn check_voter_authorization<S: DBBStorage>(
         &self,
         ballot_data: &crate::messages::SignedBallotMsgData,
@@ -203,7 +230,7 @@ impl SubmissionActor {
         Ok(auth_msg)
     }
 
-    /// Check #4: The ballot_style is a valid ballot style for this election
+    /// Check #4: The ballot_style is a valid ballot style for this election.
     fn check_ballot_style_valid(&self, ballot_style: BallotStyle) -> Result<(), String> {
         // BallotStyle is u8, so we just check it's greater than 0
         if ballot_style == 0 {
@@ -214,7 +241,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #5: The ballot_style matches the AuthVoterMsg
+    /// Check #5: The ballot_style matches the AuthVoterMsg.
     fn check_ballot_style_matches(
         &self,
         auth_msg: &crate::messages::AuthVoterMsg,
@@ -229,7 +256,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #1: The signature is a valid signature over the message contents
+    /// Check #1: The signature is a valid signature over the message contents.
     fn check_signature_valid(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         let serialized = ballot.data.ser();
         crate::cryptography::verify_signature(
@@ -240,7 +267,7 @@ impl SubmissionActor {
         .map_err(|_| "Invalid signature on ballot".to_string())
     }
 
-    /// Check #7: All Naor-Yung proofs verify correctly
+    /// Check #7: All Naor-Yung proofs verify correctly.
     fn check_naor_yung_proofs(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         // Verify the Naor-Yung proof in the ballot ciphertext
         #[crate::warning(
@@ -261,7 +288,7 @@ impl SubmissionActor {
         Ok(())
     }
 
-    /// Check #9: Ciphertext does not already appear on bulletin board
+    /// Check #9: Ciphertext does not already appear on bulletin board.
     fn check_ciphertext_not_on_bb<B: BulletinBoard>(
         &self,
         ballot: &SignedBallotMsg,
@@ -464,14 +491,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(_)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(_)) => {
                 // Success
             }
             _ => panic!("Expected TrackerMsg"),
@@ -526,14 +553,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("election hash"));
             }
@@ -581,14 +608,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(
                     msg.data
@@ -652,14 +679,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }
@@ -722,14 +749,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }
@@ -802,14 +829,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }
@@ -864,14 +891,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }
@@ -926,14 +953,14 @@ mod tests {
         let mut actor = SubmissionActor::new(election_hash, dbb_signing_key, election_public_key);
 
         let result = actor.process_input(
-            SubmissionInput::NetworkMessage(ProtocolMessage::SubmitSignedBallot(signed_ballot)),
+            SubmissionInput::NetworkMessage(ProtocolMsg::SubmitSignedBallot(signed_ballot)),
             &mut storage,
             &mut bulletin_board,
         );
 
         assert!(result.is_ok());
         match result.unwrap() {
-            SubmissionOutput::SendMessage(ProtocolMessage::ReturnBallotTracker(msg)) => {
+            SubmissionOutput::SendMessage(ProtocolMsg::ReturnBallotTracker(msg)) => {
                 assert!(!msg.data.submission_result.0);
                 assert!(msg.data.submission_result.1.contains("Invalid signature"));
             }

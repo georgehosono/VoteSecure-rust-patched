@@ -92,7 +92,7 @@ pub type VoterPseudonym = String;
 /// * `s` - The input string to hash
 ///
 /// # Returns
-/// A hash (64-byte Sha3_512) suitable for use as an ElectionHash
+/// A hash (64-byte Sha3_512) suitable for use as an ElectionHash.
 pub fn string_to_election_hash(s: &str) -> ElectionHash {
     use crate::cryptography::hash_serializable;
     hash_serializable(&s.to_string())
@@ -105,7 +105,10 @@ impl Ballot {
     /// deterministic but varied test ballots.
     ///
     /// # Arguments
-    /// * `seed` - Seed value for the pseudo-random number generator
+    /// * `seed` - Seed value for the pseudo-random number generator.
+    ///
+    /// # Returns
+    /// A `Ballot` with deterministically generated `ballot_style` and `rank` fields.
     ///
     /// # Example
     /// ```

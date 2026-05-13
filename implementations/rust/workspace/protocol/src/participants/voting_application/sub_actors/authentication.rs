@@ -12,7 +12,7 @@ use crate::cryptography::{Signature, SigningKey, VerifyingKey};
 use crate::elections::{BallotStyle, ElectionHash, VoterPseudonym};
 use crate::messages::{
     AuthFinishMsg, AuthFinishMsgData, AuthReqMsg, ConfirmAuthorizationMsg, HandTokenMsg,
-    ProtocolMessage,
+    ProtocolMsg,
 };
 use cryptography::utils::serialization::VSerializable;
 
@@ -24,7 +24,7 @@ pub enum AuthenticationInput {
     /// Starts the authentication protocol.
     Start,
     /// A network message intended for this subprotocol.
-    NetworkMessage(ProtocolMessage),
+    NetworkMessage(ProtocolMsg),
     /// A command from the host UI indicating that the third-party
     /// authentication process has been completed.
     Finish,
@@ -34,7 +34,7 @@ pub enum AuthenticationInput {
 #[derive(Debug, Clone)]
 pub enum AuthenticationOutput {
     /// A message that needs to be sent over the network.
-    SendMessage(ProtocolMessage),
+    SendMessage(ProtocolMsg),
     /// A request for the host UI to initiate the third-party authentication
     /// process using the provided token.
     RequestThirdPartyAuth(String),
@@ -73,7 +73,7 @@ enum SubState {
 #[derive(Clone, Debug)]
 pub struct AuthenticationActor {
     state: SubState,
-    // --- Injected State from TopLevelActor ---
+    // --- Injected State from VotingApplicationActor ---
     election_hash: ElectionHash,
     eas_verifying_key: VerifyingKey,
     // --- State generated and used only within this protocol ---
@@ -86,6 +86,13 @@ pub struct AuthenticationActor {
 
 impl AuthenticationActor {
     /// Creates a new `AuthenticationActor`.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `eas_verifying_key` - The EAS's verifying key for validating authorization messages.
+    ///
+    /// # Returns
+    /// A new `AuthenticationActor` with freshly generated session keys, in the `ReadyToStart` state.
     pub fn new(election_hash: ElectionHash, eas_verifying_key: VerifyingKey) -> Self {
         // Generate session keys for this authentication session
         let (session_signing_key, session_verifying_key) =
@@ -103,6 +110,12 @@ impl AuthenticationActor {
     }
 
     /// Processes an input for the Voter Authentication subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// An `AuthenticationOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: AuthenticationInput) -> AuthenticationOutput {
         match (self.state.clone(), input) {
             (SubState::ReadyToStart, AuthenticationInput::Start) => {
@@ -123,12 +136,12 @@ impl AuthenticationActor {
 
                 self.sent_auth_req = Some(auth_req_msg.clone());
                 self.state = SubState::AwaitingToken;
-                AuthenticationOutput::SendMessage(ProtocolMessage::AuthReq(auth_req_msg))
+                AuthenticationOutput::SendMessage(ProtocolMsg::AuthReq(auth_req_msg))
             }
 
             (
                 SubState::AwaitingToken,
-                AuthenticationInput::NetworkMessage(ProtocolMessage::HandToken(token_msg)),
+                AuthenticationInput::NetworkMessage(ProtocolMsg::HandToken(token_msg)),
             ) => {
                 // Perform "Voter Token Return Checks" from the spec
                 if let Err(reason) = self.perform_voter_token_return_checks(&token_msg) {
@@ -159,14 +172,12 @@ impl AuthenticationActor {
 
                 self.sent_auth_finish = Some(auth_finish_msg.clone());
                 self.state = SubState::AwaitingAuthorization;
-                AuthenticationOutput::SendMessage(ProtocolMessage::AuthFinish(auth_finish_msg))
+                AuthenticationOutput::SendMessage(ProtocolMsg::AuthFinish(auth_finish_msg))
             }
 
             (
                 SubState::AwaitingAuthorization,
-                AuthenticationInput::NetworkMessage(ProtocolMessage::ConfirmAuthorization(
-                    auth_msg,
-                )),
+                AuthenticationInput::NetworkMessage(ProtocolMsg::ConfirmAuthorization(auth_msg)),
             ) => {
                 // Perform "Confirm Authorization Checks" from the spec
                 if let Err(reason) = self.perform_confirm_authorization_checks(&auth_msg) {
@@ -187,7 +198,7 @@ impl AuthenticationActor {
 
     // --- Voter Token Return Checks (Phase 1 Response) ---
 
-    /// Performs all "Voter Token Return Checks" from the specification
+    /// Performs all "Voter Token Return Checks" from the specification.
     fn perform_voter_token_return_checks(&self, token_msg: &HandTokenMsg) -> Result<(), String> {
         self.check_token_election_hash(&token_msg.data.election_hash)?;
         self.check_token_voter_verifying_key(&token_msg.data.voter_verifying_key)?;
@@ -197,7 +208,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #1: The election_hash is the hash for the current election
+    /// Check #1: The election_hash is the hash for the current election.
     fn check_token_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
             return Err("HandTokenMsg has incorrect election hash".to_string());
@@ -205,7 +216,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #2: The voter_verifying_key matches the voter_verifying_key sent in the AuthReqMsg
+    /// Check #2: The voter_verifying_key matches the voter_verifying_key sent in the AuthReqMsg.
     fn check_token_voter_verifying_key(
         &self,
         voter_verifying_key: &VerifyingKey,
@@ -216,7 +227,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #3: The signature is a valid signature from the EAS
+    /// Check #3: The signature is a valid signature from the EAS.
     fn check_token_signature(
         &self,
         data: &crate::messages::HandTokenMsgData,
@@ -229,7 +240,7 @@ impl AuthenticationActor {
         crate::cryptography::verify_signature(&serialized, signature, &self.eas_verifying_key)
     }
 
-    /// Additional check: The token should be non-empty and properly formatted
+    /// Additional check: The token should be non-empty and properly formatted.
     fn check_token_validity(&self, token: &str) -> Result<(), String> {
         if token.is_empty() {
             return Err("HandTokenMsg token cannot be empty".to_string());
@@ -240,7 +251,7 @@ impl AuthenticationActor {
 
     // --- Confirm Authorization Checks (Phase 4) ---
 
-    /// Performs all "Confirm Authorization Checks" from the specification
+    /// Performs all "Confirm Authorization Checks" from the specification.
     fn perform_confirm_authorization_checks(
         &self,
         auth_msg: &ConfirmAuthorizationMsg,
@@ -283,7 +294,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #1: The election_hash is the hash for the current election
+    /// Check #1: The election_hash is the hash for the current election.
     fn check_auth_voter_election_hash(&self, election_hash: &ElectionHash) -> Result<(), String> {
         if election_hash != &self.election_hash {
             return Err("AuthVoterMsg has incorrect election hash".to_string());
@@ -291,7 +302,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #2: The voter_verifying_key matches the voter_verifying_key for the current session
+    /// Check #2: The voter_verifying_key matches the voter_verifying_key for the current session.
     fn check_auth_voter_verifying_key(
         &self,
         voter_verifying_key: &VerifyingKey,
@@ -302,7 +313,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Check #3: The signature is a valid signature from the EAS
+    /// Check #3: The signature is a valid signature from the EAS.
     fn check_auth_voter_signature(
         &self,
         data: &crate::messages::ConfirmAuthorizationMsgData,
@@ -315,7 +326,7 @@ impl AuthenticationActor {
         crate::cryptography::verify_signature(&serialized, signature, &self.eas_verifying_key)
     }
 
-    /// Additional check: Voter pseudonym should be valid
+    /// Additional check: Voter pseudonym should be valid.
     fn check_auth_voter_pseudonym(&self, voter_pseudonym: &VoterPseudonym) -> Result<(), String> {
         if voter_pseudonym.is_empty() {
             return Err("AuthVoterMsg voter_pseudonym cannot be empty".to_string());
@@ -324,7 +335,7 @@ impl AuthenticationActor {
         Ok(())
     }
 
-    /// Additional check: Ballot style should be valid
+    /// Additional check: Ballot style should be valid.
     fn check_auth_voter_ballot_style(&self, ballot_style: &BallotStyle) -> Result<(), String> {
         // BallotStyle is a u8, so validate it's greater than 0
         if *ballot_style > 0 {
@@ -412,7 +423,7 @@ mod tests {
         let result = auth_actor.process_input(AuthenticationInput::Start);
 
         match result {
-            AuthenticationOutput::SendMessage(ProtocolMessage::AuthReq(auth_req_msg)) => {
+            AuthenticationOutput::SendMessage(ProtocolMsg::AuthReq(auth_req_msg)) => {
                 // Verify that the message was created successfully
                 assert_eq!(
                     auth_req_msg.data.election_hash,

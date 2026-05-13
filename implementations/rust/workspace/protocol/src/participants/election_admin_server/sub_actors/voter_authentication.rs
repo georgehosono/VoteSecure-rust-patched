@@ -2,17 +2,17 @@
 // Copyright 2025 Free & Fair
 // See LICENSE.md for details
 
-//! This file contains the implementation of the VoterAuthenticationActor`,
+//! This file contains the implementation of the `VoterAuthenticationActor`,
 //! which is responsible for handling the Voter Authentication subprotocol
 //! executed by the Election Administration Server (EAS) according to the
 //! hierarchical I/O model and the voter-authentication-spec.md specification.
 
 #![allow(unused_imports)]
-// Currently ignored for code simplicity until performance data is analyzed.
-// @todo Consider boxing structs in large enum variants to improve performance.
+// TODO: consider boxing structs in large enum variants to improve performance
+// currently ignored for code simplicity until performance data is analyzed.
 #![allow(clippy::large_enum_variant)]
 
-use crate::auth_service::{AuthServiceMessage, AuthSessionRecord};
+use crate::auth_service::{AuthServiceMsg, AuthSessionRecord};
 use crate::auth_service::{
     AuthServiceQueryMsg, AuthServiceReportMsg, InitAuthReqMsg, TokenReturnMsg,
 };
@@ -24,8 +24,8 @@ use crate::elections::BallotStyle;
 use crate::elections::ElectionHash;
 use crate::elections::VoterPseudonym;
 
-use crate::messages::ProtocolMessage;
-use crate::messages::ProtocolMessage::{AuthFinish, AuthReq, AuthVoter, ConfirmAuthorization};
+use crate::messages::ProtocolMsg;
+use crate::messages::ProtocolMsg::{AuthFinish, AuthReq, AuthVoter, ConfirmAuthorization};
 use crate::messages::{AuthFinishMsg, AuthFinishMsgData};
 use crate::messages::{AuthReqMsg, AuthReqMsgData};
 use crate::messages::{AuthVoterMsg, AuthVoterMsgData};
@@ -44,146 +44,114 @@ use std::time::Instant;
  * [`VoterAuthenticationInput`] enumeruation variants or otherwise the
  * [`VoterAuthenticationActor`] state.
  */
+/// Inputs to the voter authentication sub-actor.
 #[derive(Debug, Clone)]
 pub enum VoterAuthenticationInput {
-    /**
-     * A protocol message received over the network.
-     */
-    NetworkMessage(ProtocolMessage),
+    /// A protocol message received over the network.
+    NetworkMessage(ProtocolMsg),
 
-    /**
-     * Messages received from the Authentication Service (AS)
-     */
-    AuthServiceMessage(AuthServiceMessage),
+    /// A message received from the Authentication Service (AS).
+    AuthServiceMessage(AuthServiceMsg),
 
-    /**
-     * Indicates that the requested check of biographical information
-     * succeeded and forwards the voter pseudonym and ballot style to
-     * the sub-actor.
-     */
+    /// Indicates that biographical information checks succeeded and
+    /// forwards the voter pseudonym and ballot style to the sub-actor.
     BiographicalInfoOk {
         voter_pseudonym: String,
         ballot_style: BallotStyle,
     },
 
-    /**
-     * Indicates that the requested check of biographical information
-     * failed. The argument of the variant provides an error message.
-     */
+    /// Indicates that biographical information checks failed.
+    ///
+    /// The payload contains an error message.
     BiographicalInfoInvalid(String),
 }
 
+/// Outputs from the voter authentication sub-actor.
 #[derive(Debug, Clone)]
 pub enum VoterAuthenticationOutput {
-    /**
-     * Protocol messages to be sent over the network
-     */
-    NetworkMessage(Vec<ProtocolMessage>),
+    /// Protocol messages to be sent over the network.
+    NetworkMessage(Vec<ProtocolMsg>),
 
-    /**
-     * A Message to be sent to the Authentication Service (AS)
-     */
-    AuthServiceMessage(AuthServiceMessage),
+    /// A message to be sent to the Authentication Service (AS).
+    AuthServiceMessage(AuthServiceMsg),
 
-    /**
-     * Asks the protocol driver to check the provided biographical
-     * information of the voter in its database of registered voters.
-     */
+    /// Ask the protocol driver to validate returned biographical information
+    /// against the voter registration database.
     CheckBiographicalInfo(AuthServiceReportMsg),
 
-    /**
-     * The protocol has failed.
-     */
+    /// The protocol has failed.
     Failure(String),
 }
 
 /// The sub-states for the Voter Authentication protocol.
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 enum SubState {
-    /**
-     * Initial state of the sub-actor: We are waiting for an [`AuthReqMsg`]
-     * message from the Voting Application (VA) to start the authentication
-     * request subprotocol.
-     */
+    /// Initial state: wait for an [`AuthReqMsg`] message from the Voting
+    /// Application (VA) to start the authentication request subprotocol.
     #[default]
     ReceiveAuthRequest,
 
-    /**
-     * We have sent an [`InitAuthReqMsg`] message to the Authentication
-     * Service (AS) and are waiting for a [`TokenReturnMsg`] from the AS
-     * that contains the token to be sent to the voter for using the AS.
-     * We are sending that token to the Voting Application (VA).
-     */
+    /// We have sent an [`InitAuthReqMsg`] to the Authentication Service (AS)
+    /// and are waiting for a [`TokenReturnMsg`].
     ReceiveTokenFromAS,
 
-    /**
-     * We have received a confirmation from the voter that her/his
-     * authentication session with the Authentication Service (AS) has
-     * completed. We are sending a query to the AS the verify that the
-     * voter has indeed successfully authenticated with the AS.
-     */
+    /// We received voter confirmation and are now querying the AS to verify
+    /// successful authentication.
     ReceiveAuthFinishMsg,
 
-    /**
-     * We received a reply from the Authentication Service (AS) to our
-     * query and output either `VoterAuthenticationOutput::Failure(...)`
-     * in case of a failed authentication, or a pair of network messages
-     * that confirm to the VA and DBB that authentication was successful.
-     */
+    /// We received an AS reply and now produce either failure output or
+    /// success output for VA/DBB follow-up.
     CheckReplyFromAS,
 
-    /**
-     * The Authentication Serivce (AS) has acknowledged that the voter
-     * is now authenticated. We still have to check the biographical
-     * information returned by the AS for the voter against the database
-     * of registered voters, and generate a voter pseudonym and suitable
-     * ballot style. These tasks are not carried out by the protocol
-     * implementation here but some higher-level executive / driver.
-     */
+    /// The AS has acknowledged authentication. The protocol driver must now
+    /// validate biographical data and provide pseudonym/ballot-style inputs.
     VerifyBiographicalInfo,
 
-    /**
-     * The protocol has completed, either in orderly or erroneous fashion.
-     */
+    /// The protocol has completed, either successfully or with failure.
     Completed,
 }
 
 /// State of the [`VoterAuthenticationActor`].
 #[derive(Debug, Clone)]
+/// Voter authentication sub-actor state and injected configuration.
 pub struct VoterAuthenticationActor {
     // Symbolic state of the sub-actor
     state: SubState,
 
-    // Injected state from TopLevelActor
+    // Injected state from ElectionAdminServerActor (constant for the
+    // lifetime of the sub-actor)
     election_hash: ElectionHash,
     eas_signing_key: SigningKey,
     as_project_id: String,
     as_api_key: String,
 
-    /**
-     * Records the time of the last input received by this sub-actor.
-     *
-     * This is used by the top-level actor to purge sub-actors that
-     * have time-out.
-     */
+    /// Records the time of the last input received by this sub-actor.
+    ///
+    /// Used by the top-level actor to purge timed-out sub-actors.
     time_of_last_input: Instant,
 
-    /**
-     * Signature verification key of the authenticating voter.
-     *
-     * Stored temporarily from the initial request until copied into
-     * [`AuthSessionRecord`].
-     */
+    /// Signature verification key of the authenticating voter.
+    ///
+    /// Stored temporarily from the initial request until copied into
+    /// [`AuthSessionRecord`].
     voter_verifying_key: Option<VerifyingKey>,
 
-    /**
-     * Authentication Session Record including AS token and session id.
-     */
+    /// Authentication session record including AS token and session id.
     auth_record: Option<AuthSessionRecord>,
 }
 
 /// Behavior of the [`VoterAuthenticationActor`].
 impl VoterAuthenticationActor {
+    /// Create a new voter authentication sub-actor.
+    ///
+    /// # Arguments
+    /// * `election_hash` - The election configuration hash.
+    /// * `eas_signing_key` - The EAS's signing key for issuing authorization messages.
+    /// * `as_project_id` - The project ID for the authentication service.
+    /// * `as_api_key` - The API key for the authentication service.
+    ///
+    /// # Returns
+    /// A new `VoterAuthenticationActor` ready to receive the voter's initial auth request.
     pub fn new(
         election_hash: ElectionHash,
         eas_signing_key: SigningKey,
@@ -203,6 +171,12 @@ impl VoterAuthenticationActor {
     }
 
     /// Processes an input for the Voter Authentication subprotocol.
+    ///
+    /// # Arguments
+    /// * `input` - The input to process.
+    ///
+    /// # Returns
+    /// A `VoterAuthenticationOutput` describing the result of processing the input.
     pub fn process_input(&mut self, input: VoterAuthenticationInput) -> VoterAuthenticationOutput {
         match (self.state, input) {
             (
@@ -226,7 +200,7 @@ impl VoterAuthenticationActor {
                 self.state = SubState::ReceiveTokenFromAS;
 
                 // Send Initiate Authentication Request Message to AS.
-                VoterAuthenticationOutput::AuthServiceMessage(AuthServiceMessage::InitAuthReq(
+                VoterAuthenticationOutput::AuthServiceMessage(AuthServiceMsg::InitAuthReq(
                     InitAuthReqMsg {
                         project_id: self.as_project_id.clone(),
                         api_key: self.as_api_key.clone(),
@@ -236,7 +210,7 @@ impl VoterAuthenticationActor {
 
             (
                 SubState::ReceiveTokenFromAS,
-                VoterAuthenticationInput::AuthServiceMessage(AuthServiceMessage::TokenReturn(msg)),
+                VoterAuthenticationInput::AuthServiceMessage(AuthServiceMsg::TokenReturn(msg)),
             ) => {
                 // Update time of last input occurrence for this sub-actor.
                 self.time_of_last_input = Instant::now();
@@ -272,7 +246,7 @@ impl VoterAuthenticationActor {
                 self.state = SubState::ReceiveAuthFinishMsg;
 
                 // Return network protocol message to hand token to VA.
-                VoterAuthenticationOutput::NetworkMessage(vec![ProtocolMessage::HandToken(
+                VoterAuthenticationOutput::NetworkMessage(vec![ProtocolMsg::HandToken(
                     hand_token_msg,
                 )])
             }
@@ -294,7 +268,7 @@ impl VoterAuthenticationActor {
                 self.state = SubState::CheckReplyFromAS;
 
                 // Send Initiate Authentication Request Message to AS.
-                VoterAuthenticationOutput::AuthServiceMessage(AuthServiceMessage::AuthServiceQuery(
+                VoterAuthenticationOutput::AuthServiceMessage(AuthServiceMsg::AuthServiceQuery(
                     AuthServiceQueryMsg {
                         session_id: self.auth_record.as_ref().unwrap().session_id.clone(),
                         api_key: self.as_api_key.clone(),
@@ -304,9 +278,9 @@ impl VoterAuthenticationActor {
 
             (
                 SubState::CheckReplyFromAS,
-                VoterAuthenticationInput::AuthServiceMessage(
-                    AuthServiceMessage::AuthServiceReport(msg),
-                ),
+                VoterAuthenticationInput::AuthServiceMessage(AuthServiceMsg::AuthServiceReport(
+                    msg,
+                )),
             ) => {
                 // Update time of last input occurrence for this sub-actor.
                 self.time_of_last_input = Instant::now();
@@ -481,24 +455,26 @@ impl VoterAuthenticationActor {
         }
     }
 
-    /**
-     * Determines if this request is in a compeleted state.
-     *
-     * Compeletion may occur due to successful voter authentication
-     * or otherwise some failure during execution of the protocol.
-     */
+    /// Determine whether this request is in a completed state.
+    ///
+    /// Completion may occur due to successful authentication or failure
+    /// during protocol execution.
+    ///
+    /// # Returns
+    /// `true` if the sub-actor has reached a terminal state, `false` otherwise.
     pub fn has_completed(&self) -> bool {
         self.state == SubState::Completed
     }
 
     /// Returns the time when the last input was processed by the sub-actor.
+    ///
+    /// # Returns
+    /// The `Instant` at which the most recent input was processed.
     pub fn get_time_of_last_input(&self) -> Instant {
         self.time_of_last_input
     }
 
-    /**************************/
-    /* Initial Request Checks */
-    /**************************/
+    // --- Initial Request Checks ---
 
     // Performs Initial Request Checks per protocol specification.
     fn check_auth_req_msg(&self, msg: &AuthReqMsg) -> Result<(), String> {
@@ -531,9 +507,7 @@ impl VoterAuthenticationActor {
         Ok(()) // All checks passed!
     }
 
-    /*****************************/
-    /* Validation Request Checks */
-    /*****************************/
+    // --- Validation Request Checks ---
 
     // Performs Validation Request Checks per protocol specification.
     fn check_auth_finish_msg(&self, msg: &AuthFinishMsg) -> Result<(), String> {
@@ -563,9 +537,7 @@ impl VoterAuthenticationActor {
         Ok(()) // All checks passed!
     }
 
-    /************************/
-    /* Authorization Checks */
-    /************************/
+    // --- Authorization Checks ---
 
     // 1. Biographical information from the Authentication Service Report
     //    Message match a registered voter in the voter registration database.

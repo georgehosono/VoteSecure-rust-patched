@@ -78,8 +78,8 @@ mod tests {
         input: TrusteeInput,
         /// Whether this message was Byzantine-modified.
         /// We use this to:
-        /// 1. Prevent modifying the same message twice
-        /// 2. Record which phase was affected when the message is actually delivered
+        /// 1. Prevent modifying the same message twice;
+        /// 2. Record which phase was affected when the message is actually delivered.
         byzantine_modified: bool,
     }
 

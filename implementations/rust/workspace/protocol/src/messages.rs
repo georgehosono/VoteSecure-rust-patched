@@ -3,8 +3,8 @@
 // See LICENSE.md for details
 
 //! This file contains all the message structures exchanged between participants
-//! in the e-voting protocol. All individual message structs
-//! are unified under the `ProtocolMessage` enum for type-safe handling.
+//! in the e-voting protocol. All individual message structs are unified under
+//! the `ProtocolMsg` enum for type-safe handling.
 
 // TODO: consider boxing structs in large enum variants to improve performance
 // currently ignored for code simplicity until performance data is analyzed
@@ -234,7 +234,7 @@ pub struct FwdRandomizerMsg {
 
 /// A single enum to encapsulate all possible protocol messages.
 #[derive(Debug, Clone, PartialEq)]
-pub enum ProtocolMessage {
+pub enum ProtocolMsg {
     // Voter Authentication
     AuthReq(AuthReqMsg),
     HandToken(HandTokenMsg),
