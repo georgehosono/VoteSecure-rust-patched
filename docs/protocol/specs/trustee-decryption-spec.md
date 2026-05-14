@@ -2,6 +2,8 @@
 
 This subprotocol specifies the interactions between the trustees and the trustee administration server (TAS) that transform the (already mixed) list of ballot ciphertexts into a list of plaintexts to be tallied.
 
+We assume, for this and all trustee subprotocols, that trustee identities and public keys are widely known to third parties and that trustee private keys cannot be forged. The authenticity of any purportedly-trustee-generated message posted to the public bulletin board after trustee subprotocol completion is therefore publicly verifiable.
+
 ## Trustee Protocol Communication
 
 As with the election key generation and trustee mixing protocols, the TAS performs minimal computation in this protocol. It performs three main functions: providing a "trustee board" on which the trustees can post protocol messages; validating the final round of messages posted by the trustees at the end of the subprotocol before printing them or writing them to a storage device for later printing by the election administrator; and (if necessary) posting an initial message to the trustee board containing the set of encrypted ballots that needs to be decrypted.

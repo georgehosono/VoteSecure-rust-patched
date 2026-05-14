@@ -2,6 +2,8 @@
 
 This subprotocol defines the interactions between the trustees and the trustee administration server (TAS) to accomplish the verified mixing of ballot ciphertexts through the use of a distributed re-encryption mixnet.
 
+We assume, for this and all trustee subprotocols, that trustee identities and public keys are widely known to third parties and that trustee private keys cannot be forged. The authenticity of any purportedly-trustee-generated message posted to the public bulletin board after trustee subprotocol completion is therefore publicly verifiable.
+
 ## Trustee Verification of Public Bulletin Board
 
 Before carrying out this subprotocol, the trustees must verify that the state of the public bulletin board (PBB) for the election is valid and snapshot that state in order to bring it into the air gap. The trustees will use the PBB snapshot to ensure that the set of cryptograms to be mixed is valid before the mixing protocol begins.

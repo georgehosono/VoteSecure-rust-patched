@@ -2,6 +2,8 @@
 
 This subprotocol defines the interactions among the trustees and the trustee administration server to initialize the voting protocol. The purpose of this subprotocol is for all trustees to endorse an official configuration of the protocol for a particular election. This configuration includes the list of trustees and their associated public keys thereby establishing PKI for the Trustees.
 
+We assume, for this and all trustee subprotocols, that trustee identities and public keys are widely known to third parties and that trustee private keys cannot be forged. The authenticity of any purportedly-trustee-generated message posted to the public bulletin board after trustee subprotocol completion is therefore publicly verifiable.
+
 ## Phase 1: Configuration Distribution
 
 In this phase the configuration for the election is distributed to each trustee for their inspection.

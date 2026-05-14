@@ -2,6 +2,8 @@
 
 This subprotocol defines the interactions between the trustees and the trustee administration server (TAS) to accomplish the distributed generation of a public key with each trustee holding a private key share. When ballots are later encrypted they are encrypted using this election public key.
 
+We assume, for this and all trustee subprotocols, that trustee identities and public keys are widely known to third parties and that trustee private keys cannot be forged. The authenticity of any purportedly-trustee-generated message posted to the public bulletin board after trustee subprotocol completion is therefore publicly verifiable.
+
 ## Trustee Protocol Communication
 
 In this trustee protocol (and all subsequent ones) the TAS performs minimal computation, and exists primarily to provide a "trustee board" on which the trustees can post protocol messages. The trustee board is similar to a public bulletin board, but the messages are not stored in a chain-like structure; instead, there is a fixed set of "message slots" (or "message identifiers"), each of which is used at a specific point in the protocol, and each of which (in a successful run of the protocol) can only be used once. The messages on the trustee board are stored in chronological order based on when the TAS receives them. Each trustee `t` maintains its own local copy of the trustee board by asking the TAS for all the messages later than the last message `t` has seen, whenever `t` has no messages to process in its current state. In this way every local copy of the trustee board necessarily _follows_ the board stored in the TAS; the TAS board is a sequence of messages `S`, and every local trustee board is a monotonically nondecreasing prefix of `S`.
@@ -125,7 +127,9 @@ channel properties
 
 ## Termination
 
-The subprotocol successfully terminates when one **Election Public Key Message** has posted by each trustee and all those messages contain identical election public keys. At that point, the trustees have all agreed upon the election public key, and the trustee administration server can add it to the election configuration that gets posted to the public bulletin board.
+The subprotocol successfully terminates when one **Election Public Key Message** has posted by each trustee and all those messages contain identical election public keys. At that point, the trustees have all agreed upon the election public key, and the trustee administration server can add it, and the corresponding trustee signatures, to the election configuration that gets posted to the public bulletin board.
+
+After this subprotocol is complete and the trustees leave the air gap, they (and any public observers who wish to) perform an additional check of the public bulletin board to ensure that the election public key they agreed upon and signed is the election public key that was posted to the board. This check occurs out of band. If trustee signatures on the election public key fail to verify, or it is otherwise detected that the election public key posted to the board does not match the election public key the trustees agreed upon, the election cannot continue.
 
 ## Process Diagrams
 
