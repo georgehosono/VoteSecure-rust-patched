@@ -9,3 +9,4 @@ venv*
 .cryproject/
 __pycache__/
 target
+Cargo.lock
