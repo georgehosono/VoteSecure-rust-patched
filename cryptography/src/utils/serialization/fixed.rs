@@ -207,9 +207,6 @@ impl<A: FSerializable, B: FSerializable> FSerializable for (&A, &B) {
 }
 
 /// Base case implementation of `FDeserializable` for `generate_tuple_impl` macro
-#[crate::warning(
-    "Tuple FDeserializable implementations (+ macro) do not validate total size with size_bytes()"
-)]
 impl<A: FSerializable + FDeserializable, B: FSerializable + FDeserializable> FDeserializable
     for (A, B)
 {

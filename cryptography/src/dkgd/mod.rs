@@ -57,5 +57,4 @@ pub mod recipient;
 
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
-#[crate::warning("Need more threshold parameter combinations")]
 mod tests;

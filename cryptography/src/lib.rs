@@ -5,10 +5,6 @@
 //! Cryptography library for the VoteSecure project
 
 #![allow(dead_code)]
-// Only necessary for custom_warning_macro
-#![feature(stmt_expr_attributes)]
-// Only necessary for custom_warning_macro
-#![feature(proc_macro_hygiene)]
 #![doc = include_str!("../README.md")]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
@@ -18,7 +14,6 @@
 /// Defines implementation choices for key cryptographic functionalities.
 pub mod context;
 pub mod cryptosystem;
-#[crate::warning("This module is not optimized.")]
 pub mod dkgd;
 pub mod groups;
 /// Abstractions for curve arithmetic, groups, elements and scalars.

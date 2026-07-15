@@ -114,9 +114,6 @@ pub struct Recipient<C: Context, const T: usize, const P: usize> {
 
 impl<C: Context, const T: usize, const P: usize> Recipient<C, T, P> {
     /// compile-time checks for recipient const parameters
-    #[crate::warning(
-        "Ensure choice of threshold parameter is secure. See https://eprint.iacr.org/2024/915.pdf section 2.4"
-    )]
     const CHECK: () = {
         assert!(P < 100);
         assert!(P > 0);
@@ -563,7 +560,6 @@ impl<const P: usize> ParticipantPosition<P> {
     /// Panics if the position is not in the range [1, P].
     #[must_use]
     pub fn new(position: u32) -> Self {
-        #[crate::warning("Possibly avoidable panics")]
         assert!(position > 0);
         assert!(position as usize <= P);
 
@@ -582,7 +578,6 @@ impl<const P: usize> ParticipantPosition<P> {
     /// Panics if the position is not in the range [1, P].
     #[must_use]
     pub fn from_usize(position: usize) -> Self {
-        #[crate::warning("Possibly avoidable panics")]
         assert!(position > 0);
         assert!(position <= P);
 
@@ -626,7 +621,6 @@ pub fn combine<C: Context, const T: usize, const P: usize, const W: usize>(
     // let vk_set = HashSet::<C::Element>::from_iter(verification_keys.clone().into_iter());
     // It is not easy to construct a set for [Vec<DecryptionFactor<C, P, W>>]
     // let dfactors_set = HashSet::<Vec<DecryptionFactor<C, P, W>>>::from_iter(dfactors.clone().into_iter());
-    #[crate::warning("Ensure that both dfactors and verification_keys are unique.")]
     for (i, dfactor) in dfactors.iter().enumerate() {
         let iter = dfactor.iter().zip(ciphertexts.iter());
         let lagrange = lagrange::<C, T, P>(&dfactor[0].source, &present);
@@ -672,7 +666,6 @@ pub fn combine<C: Context, const T: usize, const P: usize, const W: usize>(
     ret
 }
 
-#[crate::warning("Rustdoc needs a reference to lagrange coeff. calculation")]
 /// Compute the Lagrange coefficient for the given participant.
 ///
 /// # Parameters

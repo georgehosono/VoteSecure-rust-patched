@@ -38,24 +38,20 @@ impl CryptographicGroup for P256Group {
     /// # Errors
     ///
     /// - `HashToScalarError` if `NistP256::hash_to_scalar` returns error
-    #[crate::warning("Panics on empty input")]
     fn hash_to_scalar(input_slices: &[&[u8]], ds_tags: &[&[u8]]) -> Result<Self::Scalar, Error> {
         let ret = NistP256::hash_to_scalar::<ExpandMsgXmd<Self::Hasher>>(input_slices, ds_tags);
 
-        #[crate::warning("Fix this unwrap, modify hash_to_scalar trait to return result")]
         Ok(P256Scalar(ret?))
     }
 
     /// # Errors
     ///
     /// - `HashToElementError` if `NistP256::hash_from_bytes` returns error
-    #[crate::warning("Panics on empty input")]
     fn hash_to_element(input_slices: &[&[u8]], ds_tags: &[&[u8]]) -> Result<Self::Element, Error> {
         let ret = NistP256::hash_from_bytes::<ExpandMsgXmd<Self::Hasher>>(input_slices, ds_tags);
         let ret: Result<ProjectivePoint, Error> =
             ret.map_err(|e| Error::HashToElementError(e.to_string()));
 
-        #[crate::warning("Fix this unwrap, modify hash_to_element trait to return result")]
         Ok(P256Element(ret?))
     }
 
@@ -92,7 +88,6 @@ impl CryptographicGroup for P256Group {
         let ds_tags: &[&[u8]] = &[b"context", b"independent_generators_p256_counter"];
         let mut ret = vec![];
 
-        #[crate::warning("The following code is not optimized. Parallelize with rayon")]
         for i in 0..count {
             let inputs = &[label, &i.to_be_bytes()];
             let point = NistP256::hash_from_bytes::<ExpandMsgXmd<Self::Hasher>>(inputs, ds_tags);

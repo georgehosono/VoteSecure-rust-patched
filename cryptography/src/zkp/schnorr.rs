@@ -121,7 +121,6 @@ impl<C: Context> SchnorrProof<C> {
     }
 
     /// Domain separation tags for the challenge input
-    #[crate::warning("Challenge inputs are incomplete.")]
     const DS_TAGS: [&[u8]; 4] = [b"g", b"public_y", b"big_a", b"schnorr_context"];
     /// Computes the challenge input for the Schnorr proof
     ///

@@ -191,14 +191,12 @@ mod tests {
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    #[crate::warning("Miri test fails (Stacked Borrows)")]
     fn test_elgamal_largevector_ristretto() {
         test_elgamal_largevector::<RCtx>();
     }
 
     #[test]
     #[cfg_attr(miri, ignore)]
-    #[crate::warning("Miri test fails (Stacked Borrows)")]
     fn test_elgamal_largevector_p256() {
         test_elgamal_largevector::<PCtx>();
     }

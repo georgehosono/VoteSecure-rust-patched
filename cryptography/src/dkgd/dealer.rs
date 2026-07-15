@@ -103,10 +103,6 @@ pub struct Dealer<C: Context, const T: usize, const P: usize> {
 
 impl<C: Context, const T: usize, const P: usize> Dealer<C, T, P> {
     /// compile-time checks for dealer const parameters
-    #[crate::warning(
-        "Ensure choice of threshold parameter is secure or augment DKG with a Schnorr
-        proof of knowledge. See https://eprint.iacr.org/2024/915.pdf section 2.4"
-    )]
     const CHECK: () = {
         assert!(P < 100);
         assert!(P > 0);

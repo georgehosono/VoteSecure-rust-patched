@@ -755,7 +755,6 @@ fn checked_div(a: usize, b: usize) -> Result<usize, Error> {
 /// A `BTreeMap` is just a sorted map from K to V; we implement this
 /// naively by converting the `BTreeMap` into a vector of (K, V) pairs
 /// sorted in the same order as the `BTreeMap` and serializing it.
-#[crate::warning("This might need optimization")]
 impl<K: VSerializable, V: VSerializable> VSerializable for BTreeMap<K, V> {
     fn ser(&self) -> Vec<u8> {
         let converted_vec: Vec<(&K, &V)> = self.iter().collect();
@@ -769,7 +768,6 @@ impl<K: VSerializable, V: VSerializable> VSerializable for BTreeMap<K, V> {
 }
 
 /// Implements [`VDeserializable`] for `BTreeMap<K, V>`.
-#[crate::warning("This might need optimization")]
 impl<K: VDeserializable + Ord, V: VDeserializable> VDeserializable for BTreeMap<K, V> {
     fn deser(buffer: &[u8]) -> Result<Self, Error> {
         let len_bytes: [u8; LENGTH_BYTES] = buffer

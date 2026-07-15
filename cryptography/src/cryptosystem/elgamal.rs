@@ -413,7 +413,6 @@ impl<C: Context, const W: usize> Ciphertext<C, W> {
     /// Apply the given function to each element of the ciphertext.
     ///
     /// Returns the values as raw arrays. Consumes this value.
-    #[crate::warning("This function is not used")]
     pub fn map<F, U>(self, f: F) -> [U; 2]
     where
         F: FnMut([C::Element; W]) -> U,

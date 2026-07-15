@@ -108,7 +108,6 @@ impl CryptographicGroup for Ristretto255Group {
         hasher.update(label);
         hasher.update(b"independent_generators_ristretto");
 
-        #[crate::warning("The following code is not optimized. Parallelize with rayon")]
         let ret: Vec<RistrettoElement> = (0..count)
             .into_par_iter()
             .map(|i| {
