@@ -11,11 +11,6 @@
 //! The primary entry point for each participant is a top-level actor, which
 //! manages the state for all that participant's subprotocols.
 
-// Only necessary for custom_warning_macro
-#![feature(stmt_expr_attributes)]
-// Only necessary for custom_warning_macro
-#![feature(proc_macro_hygiene)]
-
 // --- Public Modules ---
 // These modules contain the data structures that are passed to and from the actor.
 

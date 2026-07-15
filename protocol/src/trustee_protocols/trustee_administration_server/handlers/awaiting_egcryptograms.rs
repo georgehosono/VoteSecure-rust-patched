@@ -18,7 +18,6 @@ impl TASStateHandler for AwaitingEGCryptogramsMsgs {
         Option<TASOutput>,
         Option<TrusteeBBUpdateMsg>,
     ) {
-        #[custom_warning::warning("Potentially expensive clone")]
         let trustee_msg = TrusteeMsg::EGCryptograms(input.clone());
 
         // Check that the message comes from an active trustee.

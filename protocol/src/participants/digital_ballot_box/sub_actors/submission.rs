@@ -270,9 +270,6 @@ impl SubmissionActor {
     /// Check #7: All Naor-Yung proofs verify correctly.
     fn check_naor_yung_proofs(&self, ballot: &SignedBallotMsg) -> Result<(), String> {
         // Verify the Naor-Yung proof in the ballot ciphertext
-        #[crate::warning(
-            "Potentially expensive clone. Function verify_ciphertext_proof clones ciphertext internally."
-        )]
         let is_valid = verify_ciphertext_proof(
             &ballot.data.ballot_cryptogram.ciphertext,
             &self.election_public_key,

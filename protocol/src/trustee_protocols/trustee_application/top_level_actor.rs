@@ -1380,7 +1380,6 @@ impl TrusteeActor {
 
             for (ballot_style_id, ciphertexts) in &previous_mix_msg.data.ciphertexts {
                 // Shuffle the ciphertexts for this ballot style
-                #[crate::warning("Challenge inputs are incomplete.")]
                 let (mixed, proof) =
                     shuffle_ciphertexts(ciphertexts, election_pk, &election_context)?;
                 mixed_ciphertexts.insert(*ballot_style_id, mixed);
@@ -1450,7 +1449,6 @@ impl TrusteeActor {
                 }
 
                 // Shuffle the ciphertexts for this ballot style.
-                #[crate::warning("Challenge inputs are incomplete.")]
                 let (mixed, proof) =
                     shuffle_ciphertexts(&stripped_ciphertexts, election_pk, &election_context)?;
 
@@ -1550,7 +1548,6 @@ impl TrusteeActor {
                     format!("Mix proof missing for ballot style {}", ballot_style)
                 })?;
 
-                #[crate::warning("Challenge inputs are incomplete.")]
                 verify_shuffle(
                     input_ciphertexts,
                     output_ciphertexts,
@@ -1587,7 +1584,6 @@ impl TrusteeActor {
                     format!("Mix proof missing for ballot style {}", ballot_style)
                 })?;
 
-                #[crate::warning("Challenge inputs are incomplete.")]
                 verify_shuffle(
                     input_ciphertexts,
                     output_ciphertexts,

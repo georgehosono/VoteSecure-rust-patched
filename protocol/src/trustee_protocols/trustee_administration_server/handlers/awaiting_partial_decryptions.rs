@@ -18,7 +18,6 @@ impl TASStateHandler for AwaitingPartialDecryptions {
         Option<TASOutput>,
         Option<TrusteeBBUpdateMsg>,
     ) {
-        #[custom_warning::warning("Potentially expensive clone")]
         let trustee_msg = TrusteeMsg::PartialDecryptions(input.clone());
 
         // Check that the message is properly signed; we don't check anything

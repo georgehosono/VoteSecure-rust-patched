@@ -30,7 +30,6 @@ use crate::trustee_protocols::trustee_messages::{
 
 use super::top_level_actor::{MixingParameters, TASActor, TASOutput, TASState};
 
-use custom_warning_macro as custom_warning;
 use enum_dispatch::enum_dispatch;
 
 #[derive(Debug, Clone, Copy)]

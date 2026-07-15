@@ -30,7 +30,6 @@ pub(crate) use self::messages::Message as AscentMsg;
 /// out by the CryptographyContext hasher. Stateright will
 /// later compute its own hashes internally, but these are
 /// not used outside of stateright.
-#[crate::warning("Should use typesafe newtypes instead of type aliases")]
 pub(crate) mod types {
     use super::AccumulatorSet;
     use super::CryptographicHash;
@@ -114,9 +113,6 @@ pub(crate) enum Action {
 //
 // 3) Output rules: derive output relations, actions and errors, from input and intermediate relations
 //
-#[crate::warning(
-    "Error relations should be generic, but error condition relations should be specific (eg `relation pk_mismatch(...)')"
-)]
 ascent::ascent_source! { prelude:
 
     // Corresponds to messages received from the bulletin board

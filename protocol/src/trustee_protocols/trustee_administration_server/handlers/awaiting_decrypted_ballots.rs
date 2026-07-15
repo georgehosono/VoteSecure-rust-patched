@@ -18,7 +18,6 @@ impl TASStateHandler for AwaitingDecryptedBallots {
         Option<TASOutput>,
         Option<TrusteeBBUpdateMsg>,
     ) {
-        #[custom_warning::warning("Potentially expensive clone")]
         let trustee_msg = TrusteeMsg::DecryptedBallots(input.clone());
 
         // Check that the message is properly signed; we don't check anything
